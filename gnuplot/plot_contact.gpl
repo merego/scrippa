@@ -1,0 +1,231 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 11:  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 4.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 2 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FFFF00" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+# Predefined B/W
+set style line 21 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#000000" #black, large continuos, point : filled circle
+set style line 22 lt 8 lw 5.5 pt 7 ps 3.0 lc rgb "#880000" #dark red, large dashed , point : filled circle
+
+set style line 23 lt 1 lw 4.5 pt 7 ps 3.0 lc rgb "#000000" # black
+set style line 24 lt 1 lw 5.0 pt 5 ps 3.0 lc rgb "#880000" # dark red
+set style line 25 lt 2 lw 5.5 pt 4 ps 3.0 lc rgb "#008800" # dark green
+set style line 26 lt 3 lw 5.5 pt 8 ps 3.0 lc rgb "#000088" # dark green
+
+set encoding iso_8859_1 
+set border lw 5 # thickness of the border
+set bmargin 7
+set lmargin 15
+
+unset grid;
+
+# --- bpti contacts ---
+unset title;
+set xlabel "BPTI oligomer size" font "Helvetica,50" offset +0,-2.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,50";
+set ylabel "Oligomer fraction" font "Helvetica,50" offset -5.0,0;
+set key top right spacing 5.2 font "Helvetica Bold,50"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,50";
+set ytics auto font "Helvetica Bold,50";
+#set xtics auto font "Helvetica Bold,50";
+set xrange [0.5:5.5];
+set yrange [0:1];
+set boxwidth 0.9 absolute
+#set style fill   solid 1.00 border -1
+set style fill pattern border -1 
+set style histogram clustered gap 1 title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, -0.5, 0 font "Helvetica Bold,50"
+#plot 'immigration.dat' using 6:xtic(1) ti col, '' u 12 ti col, '' u 13 ti col, '' u 14 ti col
+set xtic rotate by 0;
+set output 'hist_cont_bpti_N2-Dmin6-Dc9.ps';
+plot 'hist_cont_bpti_N2-Dmin6-Dc9.dat' u 2:xtic(1) ls 1 title '10 g/L',\
+'hist_cont_bpti_N2-Dmin6-Dc9.dat' u 3 ls 3 title '20 g/L',\
+'hist_cont_bpti_N2-Dmin6-Dc9.dat' u 4 ls 5 title '30 g/L',\
+'hist_cont_bpti_N2-Dmin6-Dc9.dat' u 5 ls 1 title '60 g/L';
+
+
+unset title;
+set xlabel "BPTI oligomer size" font "Helvetica,50" offset +0,-2.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,50";
+set ylabel "Oligomer fraction" font "Helvetica,50" offset -5.0,0;
+set key top right spacing 5.2 font "Helvetica Bold,50"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,50";
+set ytics auto font "Helvetica Bold,50";
+#set xtics auto font "Helvetica Bold,50";
+set xrange [0.5:5.5];
+set yrange [0:1];
+set boxwidth 0.9 absolute
+#set style fill   solid 1.00 border -1
+set style fill pattern border -1 
+set style histogram clustered gap 1 title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, -0.5, 0 font "Helvetica Bold,50"
+#plot 'immigration.dat' using 6:xtic(1) ti col, '' u 12 ti col, '' u 13 ti col, '' u 14 ti col
+set xtic rotate by 0;
+set output 'hist_cont_bpti_N2-Dmin6-Dc4.5.ps';
+plot 'hist_cont_bpti_N2-Dmin6-Dc4.5.dat' u 2:xtic(1) ls 1 title '10 g/L',\
+'hist_cont_bpti_N2-Dmin6-Dc4.5.dat' u 3 ls 3 title '20 g/L',\
+'hist_cont_bpti_N2-Dmin6-Dc4.5.dat' u 4 ls 5 title '30 g/L',\
+'hist_cont_bpti_N2-Dmin6-Dc4.5.dat' u 5 ls 1 title '60 g/L';
+
+
+
+# --- bpti contacts ---
+unset title;
+set xlabel "BPTI oligomer size" font "Helvetica,50" offset +0,-2.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,50";
+set ylabel "Oligomer fraction" font "Helvetica,50" offset -5,0;
+set key top right spacing 5.2 font "Helvetica Bold,50"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,50";
+set ytics auto font "Helvetica Bold,50";
+#set xtics auto font "Helvetica Bold,50";
+set xrange [0.5:5.5];
+set yrange [0:1];
+set boxwidth 0.9 absolute
+#set style fill   solid 1.00 border -1
+set style fill pattern border -1 
+set style histogram clustered gap 1 title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, -0.5, 0 font "Helvetica Bold,50"
+#plot 'immigration.dat' using 6:xtic(1) ti col, '' u 12 ti col, '' u 13 ti col, '' u 14 ti col
+set xtic rotate by 0;
+set output 'hist_cont_bpti_N4-Dmin6-Dc4.5.ps';
+plot 'hist_cont_bpti_N4-Dmin6-Dc4.5.dat' u 2:xtic(1) ls 1 title '10 g/L',\
+'hist_cont_bpti_N4-Dmin6-Dc4.5.dat' u 3 ls 3 title '20 g/L',\
+'hist_cont_bpti_N4-Dmin6-Dc4.5.dat' u 4 ls 5 title '30 g/L',\
+'hist_cont_bpti_N4-Dmin6-Dc4.5.dat' u 5 ls 1 title '60 g/L';
+
+
+# --- hewl contacts ---
+unset title;
+set xlabel "HEWL oligomer size" font "Helvetica,50" offset +0,-2.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,50";
+set ylabel "Oligomer fraction" font "Helvetica,50" offset -5,0;
+set key top right spacing 5.2 font "Helvetica Bold,50"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,50";
+set ytics auto font "Helvetica Bold,50";
+#set xtics auto font "Helvetica Bold,50";
+set xrange [0.5:5.5];
+set yrange [0:1];
+set boxwidth 0.9 absolute
+#set style fill   solid 1.00 border -1
+set style fill pattern border -1 
+set style histogram clustered gap 1 title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, -0.5, 0 font "Helvetica Bold,50"
+#plot 'immigration.dat' using 6:xtic(1) ti col, '' u 12 ti col, '' u 13 ti col, '' u 14 ti col
+set xtic rotate by 0;
+set output 'hist_cont_hewl_N4-Dmin5-Dc6.ps';
+plot 'hist_cont_hewl_N4-Dmin5-Dc6.dat' u 2:xtic(1) ls 1 title '14 g/L',\
+'hist_cont_hewl_N4-Dmin5-Dc6.dat' u 3 ls 3 title '28 g/L',\
+'hist_cont_hewl_N4-Dmin5-Dc6.dat' u 4 ls 5 title '42 g/L',\
+'hist_cont_hewl_N4-Dmin5-Dc6.dat' u 5 ls 1 title '57 g/L';
+
+
+# --- hewl contacts ---
+unset title;
+set xlabel "HEWL oligomer size" font "Helvetica,50" offset +0,-2.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,50";
+set ylabel "Oligomer fraction" font "Helvetica,50" offset -5,0;
+set key top right spacing 5.2 font "Helvetica Bold,50"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,50";
+set ytics auto font "Helvetica Bold,50";
+#set xtics auto font "Helvetica Bold,50";
+set xrange [0.5:5.5];
+set yrange [0:1];
+set boxwidth 0.9 absolute
+#set style fill   solid 1.00 border -1
+set style fill pattern border -1 
+set style histogram clustered gap 1 title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, -0.5, 0 font "Helvetica Bold,50"
+#plot 'immigration.dat' using 6:xtic(1) ti col, '' u 12 ti col, '' u 13 ti col, '' u 14 ti col
+set xtic rotate by 0;
+set output 'hist_cont_hewl_N2-Dmin6-Dc4.5.ps';
+plot 'hist_cont_hewl_N2-Dmin6-Dc4.5.dat' u 2:xtic(1) ls 1 title '14 g/L',\
+'hist_cont_hewl_N2-Dmin6-Dc4.5.dat' u 3 ls 3 title '28 g/L',\
+'hist_cont_hewl_N2-Dmin6-Dc4.5.dat' u 4 ls 5 title '42 g/L',\
+'hist_cont_hewl_N2-Dmin6-Dc4.5.dat' u 5 ls 1 title '57 g/L';
+
+
+
+
+
+
+# --- T4 contacts ---
+unset title;
+set xlabel "T4 lysozyme oligomer size" font "Helvetica,50" offset +0,-2.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,50";
+set ylabel "Oligomer fraction" font "Helvetica,50" offset -5,0;
+set key top right spacing 5.2 font "Helvetica Bold,50"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,50";
+set ytics auto font "Helvetica Bold,50";
+#set xtics auto font "Helvetica Bold,50";
+set xrange [0.5:5.5];
+set yrange [0:1];
+set boxwidth 0.9 absolute
+#set style fill   solid 1.00 border -1
+set style fill pattern border -1 
+set style histogram clustered gap 1 title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, -0.5, 0 font "Helvetica Bold,50"
+#plot 'immigration.dat' using 6:xtic(1) ti col, '' u 12 ti col, '' u 13 ti col, '' u 14 ti col
+set xtic rotate by 0;
+set output 'hist_cont_T4_N2-Dmin6-Dc4.5.ps';
+plot 'hist_cont_T4_N2-Dmin6-Dc4.5.dat' u 2:xtic(1) ls 1 title 'S44K',\
+'hist_cont_T4_N2-Dmin6-Dc4.5.dat' u 3 ls 3 title 'WT',\
+'hist_cont_T4_N2-Dmin6-Dc4.5.dat' u 4 ls 5 title 'S44F',\
+'hist_cont_T4_N2-Dmin6-Dc4.5.dat' u 5 ls 1 title 'S44E';
+
+

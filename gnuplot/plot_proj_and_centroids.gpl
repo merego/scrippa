@@ -1,0 +1,238 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+#set terminal pngcairo enhanced size 1000, 800
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 1($1/s):  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#88000" # dark red
+set style line 2 lt 2 lw 5.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 3 lw 5.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 4 lw 5.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 5 lw 5.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FF9900" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FFFF00" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+set style line 11 lt 1 lw 2.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 12 lt 2 lw 2.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 13 lt 3 lw 2.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 14 lt 4 lw 2.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 15 lt 5 lw 2.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 16 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 17 lt 1 lw 2.5 pt 7 ps 3.0 lc rgb "#FF9900" # light yellow
+set style line 18 lt 1 lw 2.5 pt 8 ps 3.0 lc rgb "#FFFF00" # orange 
+set style line 19 lt 1 lw 2.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 20 lt 1 lw 2.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+# Predefined B/W
+set style line 21 lt 1 lw 1.0 pt 7 ps 1.0 lc rgb "#000000" #black, large continuos, point : filled circle
+set style line 22 lt 8 lw 5.5 pt 1 ps 1.0 lc rgb "#888888" #grey
+
+set style line 23 lt 1 lw 1.0 pt 1 ps 3.0 lc rgb "#880000" # black
+set style line 24 lt 1 lw 5.0 pt 5 ps 3.0 lc rgb "#880000" # dark red
+set style line 25 lt 2 lw 5.5 pt 4 ps 3.0 lc rgb "#008800" # dark green
+set style line 26 lt 3 lw 5.5 pt 8 ps 3.0 lc rgb "#000088" # dark blue
+set style line 27 lt 4 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange
+set style line 28 lt 5 lw 5.5 pt 8 ps 3.0 lc rgb "#888800" # yellow
+
+set encoding iso_8859_1
+#printvalue(n)=sprintf("{/Symbol a} = %4.2f",n)
+printclname(n)=sprintf("%4s",n)
+
+# Characteristc times
+#s=1000.0 # tau_b (relaxation time)
+dt=0.002 # timestep (fs)
+ntwx=1000.0 # frequency trajectory write out (frame)
+
+set table 'test.dat'
+splot 'histogram_PC1_2.dat'
+unset table
+
+set contour base
+set cntrparam cubicspline
+set cntrparam level incremental 0.0, 0.1, 1.0
+unset surface
+set table 'cont.dat'
+splot 'histogram_PC1_2.dat'
+unset table
+
+unset key
+set cbrange [0:1]
+set palette rgbformulae -21,-22,-23
+`grep -v "#" ../kMeans_on_dPCA/centroid_frames_cl10_8.dat | awk '// {print "set label printclname(\x27CL" NR "\x27) at " $2 "," $3 " font \x27Helvetica Bold,24\x27 front ;"}'`
+set output 'histogram_PC1_2.ps'
+p 'test.dat' with image,\
+'cont.dat' w l ls 21;
+#p 'cont.dat' w l;
+
+
+# Clear tables
+`rm test.dat`
+`rm cont.dat`
+
+reset
+unset key
+set view map
+unset surface
+#set pm3d
+set hidden3d
+set contour base
+set cntrparam cubicspline
+set cntrparam level incremental 0.0, 0.05, 1.0
+set palette rgbformulae 33,13,10
+#set view map
+#set pm3d interpolate 2,1  map
+set origin 0,0
+`grep -v "#" ../kMeans_on_dPCA/centroid_frames_cl10_8.dat | awk '// {print "set label printclname(\x27CL" NR "\x27) at first " $2-0.5 "," $3+2.5 " font \x27Helvetica Bold,24\x27 front ;"}'`
+`grep -v "#" ../kMeans_on_dPCA/centroid_frames_cl10_8.dat | awk '// {print "set arrow from "  $2 "," $3+2 " to " $2 "," $3 " front ;"}'`
+set output 'histogram_PC1_2_pm3d.ps'
+splot 'histogram_PC1_2.dat' w l lw 1.4 pal;
+
+# Color by row
+# Time series colored by row index
+unset label;
+unset arrow;
+set palette defined (0 "blue", 0.5 "orange", 1 "red")
+set output 'proj_PC1_2_time.ps';
+plot '../dPCA/dPCA_proj.dat' u 1:2:($0/58407) w l palette; 
+
+#p 'prova.dat' with image, 'prova.dat' w l lt -1 lw 1.5
+#set tmargin 3;
+#set bmargin 4.5;
+#set lmargin 13;
+#set rmargin 3;
+#set format y "%5.2f"
+#
+####################################################################################################
+### Plot rmsd
+#set output 'ps/rmsd.ps';
+#
+## MAIN PLOT
+#set origin 0,0
+#set size 1.0,1.0
+#set title "RMSD" font "Helvetica Bold,24";
+#set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+##set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+#set ylabel "RMSD ({\305})" font "Helvetica,24" offset -1,0;
+#set key bottom right spacing 1.5 font "Helvetica Bold,24"
+#unset x2tics;
+#unset xtics;
+#set ytics auto font "Helvetica Bold,24";
+#set xtics auto font "Helvetica Bold,24";
+##set xrange auto; # [100/s:1000.0/s];
+##set yrange auto; # [0.1:5e4];
+#plot\
+#'../ana/rmsd_allatoms.dat' u ($1*dt*ntwx/1000.0):2 ls 1 w l title 'allatoms',\
+#'../ana/rmsd_backbone.dat' u ($1*dt*ntwx/1000.0):2 ls 3 w l title 'backbone';
+#
+####################################################################################################
+### Plot radius gyration
+#set output 'ps/rgyr.ps';
+#
+## MAIN PLOT
+#set origin 0,0
+#set size 1.0,1.0
+#set title "Radius of gyration" font "Helvetica Bold,24";
+#set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+##set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+#set ylabel "R_{g} ({\305})" font "Helvetica,24" offset -2,0;
+#set key bottom right spacing 1.5 font "Helvetica Bold,24"
+#unset x2tics;
+#unset xtics;
+#set ytics auto font "Helvetica Bold,24";
+##set format y "%6.0e"
+#set xtics auto font "Helvetica Bold,24";
+##set xrange auto; # [100/s:1000.0/s];
+##set yrange auto; # [0.1:5e4];
+#plot\
+#'../ana/rgyr_allatoms.dat' u ($1*dt*ntwx/1000.0):2 ls 1 w l title 'allatoms';
+#
+####################################################################################################
+### Plot Total energy
+#set output 'ps/ETOT.ps';
+#
+## MAIN PLOT
+#set origin 0,0
+#set size 1.0,1.0
+#set title "Total energies" font "Helvetica Bold,24";
+#set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+##set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+#set ylabel "Energy (kcal/mol/10^5)" font "Helvetica,24" offset -2,0;
+#set key bottom right spacing 1.5 font "Helvetica Bold,24"
+#set key at graph 1.0,0.4
+#unset x2tics;
+#unset xtics;
+#set ytics auto font "Helvetica Bold,24";
+##set format y "%6.0e"
+#set xtics auto font "Helvetica Bold,24";
+##set xrange auto; # [100/s:1000.0/s];
+##set yrange auto; # [0.1:5e4];
+#plot\
+#'../ana/summary/summary.ETOT' u ($1/1000.0):($2/10000) ls 1 smooth cspline title 'ETOT (spline smooth)',\
+#'../ana/summary/summary.EPTOT' u ($1/1000.0):($2/10000) ls 2 smooth cspline title 'EPTOT (spline smooth)',\
+#'../ana/summary/summary.EKTOT' u ($1/1000.0):($2/10000) ls 3 smooth cspline title 'EKTOT (spline smooth)';
+#set key default ## to reset key dafault position
+#
+####################################################################################################
+### Plot Temperature
+#set output 'ps/TEMP.ps';
+#set format '%5.1f';
+## MAIN PLOT
+#set origin 0,0
+#set size 1.0,1.0
+#set title "Temperature" font "Helvetica Bold,24";
+#set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+##set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+#set ylabel "Temp. (K)" font "Helvetica,24" offset -2,0;
+#set key bottom right spacing 1.5 font "Helvetica Bold,24"
+#unset x2tics;
+#unset xtics;
+#set ytics auto font "Helvetica Bold,24";
+##set format y "%6.0e"
+#set xtics auto font "Helvetica Bold,24";
+##set xrange auto; # [100/s:1000.0/s];
+##set yrange auto; # [0.1:5e4];
+#plot\
+#'../ana/summary/summary.TEMP' u ($1/1000.0):2 ls 1 w l title 'TEMP',\
+#'../ana/summary/summary.TEMP' u ($1/1000.0):2:(1000) ls 2 smooth acsplines title 'TEMP (spline smooth)';
+#
+####################################################################################################
+### Plot Temperature
+#set output 'ps/PRESS.ps';
+#set format '%5.1f';
+## MAIN PLOT
+#set origin 0,0
+#set size 1.0,1.0
+#set title "Pressure" font "Helvetica Bold,24";
+#set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+##set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+#set ylabel "Press. (bar)" font "Helvetica,24" offset -2,0;
+#set key bottom right spacing 1.5 font "Helvetica Bold,24"
+#unset x2tics;
+#unset xtics;
+#set ytics auto font "Helvetica Bold,24";
+##set format y "%6.0e"
+#set xtics auto font "Helvetica Bold,24";
+##set xrange auto; # [100/s:1000.0/s];
+##set yrange auto; # [-20:20];
+#plot\
+#'../ana/summary/summary.PRES' u ($1/1000.0):2 ls 1 w l title 'PRES',\
+#'../ana/summary/summary.PRES' u ($1/1000.0):2:(10.0) ls 2 smooth acsplines title 'PRES (spline smooth)';

@@ -1,0 +1,453 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 11:  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#000000" # black
+set style line 2 lt 1 lw 5.5 pt 5 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FFFF00" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+# Predefined B/W
+set style line 21 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#000000" #black, large continuos, point : filled circle
+set style line 22 lt 3 lw 5.5 pt 7 ps 0.5 lc rgb "#000000" #black, thin continuos, point : filled circle
+
+set style line 23 lt 1 lw 5.5 pt 5 ps 3.0 lc rgb "#002a47" # dark blue
+set style line 24 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#002a47" # dark blue
+set style line 25 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#002a47" # dark blue
+set style line 26 lt 1 lw 5.5 pt 5 ps 3.0 lc rgb "#880000" # dark red
+set style line 27 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#880000" # dark red
+set style line 28 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#880000" # dark red
+set style line 29 lt 1 lw 5.5 pt 5 ps 3.0 lc rgb "#004400" # dark green
+set style line 30 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#004400" # dark green
+set style line 31 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#004400" # dark green
+set style line 32 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#880000" # dark red
+set style line 33 lt 1 lw 5.5 pt 5 ps 3.0 lc rgb "#000000" # black
+set style line 34 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#880000" # dark red
+
+
+set style line 33 lt 1 lw 5.5 pt 4 ps 3.0 lc rgb "#0096ff" # blue
+set style line 34 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#0096ff" # blue
+set style line 35 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#0096ff" # blue
+set style line 36 lt 1 lw 5.5 pt 4 ps 3.0 lc rgb "#FF0000" # light red
+set style line 37 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#FF0000" # light red
+set style line 38 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FF0000" # light red
+set style line 39 lt 1 lw 5.5 pt 4 ps 3.0 lc rgb "#75FF75" # light green
+set style line 40 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#75FF75" # light green
+set style line 41 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#75FF75" # light green
+
+
+set style line 46 lt 1 lw 5.5 pt 5 ps 2.5 lc rgb "#880000" # dark red
+set style line 47 lt 1 lw 5.5 pt 7 ps 2.5 lc rgb "#880000" # dark red
+set style line 48 lt 1 lw 5.5 pt 9 ps 2.5 lc rgb "#880000" # dark red
+set style line 49 lt 1 lw 5.5 pt 5 ps 2.5 lc rgb "#004400" # dark green
+set style line 50 lt 1 lw 5.5 pt 7 ps 2.5 lc rgb "#004400" # dark green
+set style line 51 lt 1 lw 5.5 pt 9 ps 2.5 lc rgb "#004400" # dark green
+set style line 52 lt 1 lw 5.5 pt 6 ps 2.5 lc rgb "#880000" # dark red
+set style line 53 lt 1 lw 5.5 pt 5 ps 2.5 lc rgb "#000000" # black
+set style line 54 lt 1 lw 5.5 pt 9 ps 2.5 lc rgb "#880000" # dark red
+
+
+set style line 63 lt 1 lw 5.5 pt 5 ps 2.5 lc rgb "#AAAAAA" # gray
+set style line 64 lt 1 lw 5.5 pt 7 ps 2.5 lc rgb "#AAAAAA" # gray
+set style line 65 lt 1 lw 5.5 pt 9 ps 2.5 lc rgb "#AAAAAA" # gray
+set style line 66 lt 1 lw 5.5 pt 4 ps 2.5 lc rgb "#FF0000" # light red
+set style line 67 lt 1 lw 5.5 pt 6 ps 2.5 lc rgb "#FF0000" # light red
+set style line 68 lt 1 lw 5.5 pt 8 ps 2.5 lc rgb "#FF0000" # light red
+set style line 69 lt 1 lw 5.5 pt 4 ps 2.5 lc rgb "#75FF75" # light green
+set style line 70 lt 1 lw 5.5 pt 6 ps 2.5 lc rgb "#75FF75" # light green
+set style line 71 lt 1 lw 5.5 pt 8 ps 2.5 lc rgb "#75FF75" # light green
+
+
+set style line 72 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FF0000" # light red
+
+unset grid;
+set bars 3 
+set title
+
+
+
+# HEWL B22 Regression + donnan 100 mM, 500 mM
+set size square;
+set origin 0,0;
+
+set output 'B22_hewl_2_donn_5_100_500mM.ps';
+set multiplot           # This will followed by two plots
+
+set origin 0,0
+
+# HEWL B22 Regression + donannd 5mM + 100mM + 500 mM
+unset title
+#set key outside top right spacing 1.5 font "Helvetica Bold,10";
+unset key;
+set xrange [-10:45];
+set yrange [-10:160];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,24";
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+#set label "R^2=0.95" at 2.5,0
+set xtics font "Helvetica Bold,24";
+unset y2tics;
+set ytics font "Helvetica Bold,24";
+e(x)=0.63*x+0.96
+ll(x)=1.0*x
+plot 'B22_hewl.dat' u 1:2:3 w yerrorbars ls 23 notitle,\
+'B22_hewl.dat' u 1:2:3 w p ls 23 title 'pH3,5mM',\
+'B22_hewl.dat' u 4:5:6 w yerrorbars ls 26 notitle,\
+'B22_hewl.dat' u 4:5:6 w p ls 26 title 'pH3,100mM',\
+'B22_hewl.dat' u 7:8:9 w yerrorbars ls 29 notitle,\
+'B22_hewl.dat' u 7:8:9 w p ls 29 title 'pH3,500mM',\
+'B22_hewl.dat' u 10:11:12 w yerrorbars ls 24 notitle,\
+'B22_hewl.dat' u 10:11:12 w p ls 24 title 'pH6,5mM',\
+'B22_hewl.dat' u 13:14:15 w yerrorbars ls 27 notitle,\
+'B22_hewl.dat' u 13:14:15 w p ls 27 title 'pH6,100mM',\
+'B22_hewl.dat' u 16:17:18 w yerrorbars ls 30 notitle,\
+'B22_hewl.dat' u 16:17:18 w p ls 30 title 'pH6,500mM',\
+'B22_hewl.dat' u 19:20:21 w yerrorbars ls 25 notitle,\
+'B22_hewl.dat' u 19:20:21 w p ls 25 title 'pH9,5mM',\
+'B22_hewl.dat' u 22:23:24 w yerrorbars ls 28 notitle,\
+'B22_hewl.dat' u 22:23:24 w p ls 28 title 'pH9,100mM',\
+'B22_hewl.dat' u 25:26:27 w yerrorbars ls 31 notitle,\
+'B22_hewl.dat' u 25:26:27 w p ls 31 title 'pH9,500mM',\
+'B22_hewl_donnan.dat' u 1:2 w p ls 33 title 'pH3,5mM, corr.',\
+'B22_hewl_donnan.dat' u 3:4 w p ls 34 title 'pH6,5mM, corr.',\
+'B22_hewl_donnan.dat' u 5:6 w p ls 35 title 'pH9,5mM, corr.',\
+'B22_hewl_donnan.dat' u 7:8 w p ls 36 title 'pH3,100mM corr.',\
+'B22_hewl_donnan.dat' u 9:10 w p ls 37 title 'pH6,100mM, corr.',\
+'B22_hewl_donnan.dat' u 11:12 w p ls 38 title 'pH9,100mM, corr.',\
+'B22_hewl_donnan.dat' u 13:14 w p ls 39 title 'pH9,500mM, corr.',\
+'B22_hewl_donnan.dat' u 15:16 w p ls 40 title 'pH9,500mM, corr.',\
+'B22_hewl_donnan.dat' u 17:18 w p ls 41 title 'pH9,500mM, corr.',\
+ll(x) w l ls 22 notitle;
+#e(x) w l ls 21 notitle;
+
+set origin 0.28,0.58
+set size 0.35,0.35
+
+unset title
+set key outside top right spacing 1.5 font "Helvetica Bold,10";
+unset key;
+#set output 'B22_hewl_2_donn_100_500mM.ps';
+set xrange [-10:10];
+set yrange [-10:10];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,20";
+unset xlabel;
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,20";
+unset ylabel;
+#set label "R^2=0.95" at 2.5,0
+set xtics font "Helvetica Bold,20";
+set ytics font "Helvetica Bold,20";
+unset ytics;
+set y2tics font "Helvetica Bold,20";
+e(x)=0.63*x+0.96
+#e(x)=0.97*x+3.98
+ll(x)=1.0*x
+plot 'B22_hewl.dat' u 4:5:6 w yerrorbars ls 46 notitle,\
+'B22_hewl.dat' u 4:5:6 w p ls 46 title 'pH3,100mM',\
+'B22_hewl.dat' u 7:8:9 w yerrorbars ls 49 notitle,\
+'B22_hewl.dat' u 7:8:9 w p ls 49 title 'pH3,500mM',\
+'B22_hewl.dat' u 13:14:15 w yerrorbars ls 47 notitle,\
+'B22_hewl.dat' u 13:14:15 w p ls 47 title 'pH6,100mM',\
+'B22_hewl.dat' u 16:17:18 w yerrorbars ls 50 notitle,\
+'B22_hewl.dat' u 16:17:18 w p ls 50 title 'pH6,500mM',\
+'B22_hewl.dat' u 22:23:24 w yerrorbars ls 48 notitle,\
+'B22_hewl.dat' u 22:23:24 w p ls 48 title 'pH9,100mM',\
+'B22_hewl.dat' u 25:26:27 w yerrorbars ls 51 notitle,\
+'B22_hewl.dat' u 25:26:27 w p ls 51 title 'pH9,500mM',\
+'B22_hewl_donnan.dat' u 7:8 w p ls 66 title 'pH3,100mM *',\
+'B22_hewl_donnan.dat' u 9:10 w p ls 67 title 'pH6,100mM, corr.',\
+'B22_hewl_donnan.dat' u 11:12 w p ls 68 title 'pH9,100mM, corr.',\
+'B22_hewl_donnan.dat' u 13:14 w p ls 69 title 'pH9,500mM, corr.',\
+'B22_hewl_donnan.dat' u 15:16 w p ls 70 title 'pH9,500mM, corr.',\
+'B22_hewl_donnan.dat' u 17:18 w p ls 71 title 'pH9,500mM, corr.',\
+ll(x) w l ls 22 notitle;
+#e(x) w l ls 21 notitle;
+
+set nomultiplot
+set size 1,1
+
+
+# HEWL B22 Regression ORIGINAL
+set size square;
+unset title
+set key top left spacing 1.5 font "Helvetica Bold,10";
+set output 'B22_hewl_2.ps';
+set xrange [-10:45];
+set yrange [-10:45];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,24";
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+#set label "R^2=0.95" at 2.5,0
+set xtics font "Helvetica Bold,24";
+set ytics font "Helvetica Bold,24";
+e(x)=0.63*x+0.96
+ll(x)=1.0*x
+plot 'B22_hewl.dat' u 1:2:3 w yerrorbars ls 23 notitle,\
+'B22_hewl.dat' u 1:2:3 w p ls 23 title 'pH3,5mM',\
+'B22_hewl.dat' u 4:5:6 w yerrorbars ls 26 notitle,\
+'B22_hewl.dat' u 4:5:6 w p ls 26 title 'pH3,100mM',\
+'B22_hewl.dat' u 7:8:9 w yerrorbars ls 29 notitle,\
+'B22_hewl.dat' u 7:8:9 w p ls 29 title 'pH3,500mM',\
+'B22_hewl.dat' u 10:11:12 w yerrorbars ls 24 notitle,\
+'B22_hewl.dat' u 10:11:12 w p ls 24 title 'pH6,5mM',\
+'B22_hewl.dat' u 13:14:15 w yerrorbars ls 27 notitle,\
+'B22_hewl.dat' u 13:14:15 w p ls 27 title 'pH6,100mM',\
+'B22_hewl.dat' u 16:17:18 w yerrorbars ls 30 notitle,\
+'B22_hewl.dat' u 16:17:18 w p ls 30 title 'pH6,500mM',\
+'B22_hewl.dat' u 19:20:21 w yerrorbars ls 25 notitle,\
+'B22_hewl.dat' u 19:20:21 w p ls 25 title 'pH9,5mM',\
+'B22_hewl.dat' u 22:23:24 w yerrorbars ls 28 notitle,\
+'B22_hewl.dat' u 22:23:24 w p ls 28 title 'pH9,100mM',\
+'B22_hewl.dat' u 25:26:27 w yerrorbars ls 31 notitle,\
+'B22_hewl.dat' u 25:26:27 w p ls 31 title 'pH9,500mM',\
+e(x) w l ls 21 notitle,\
+ll(x) w l ls 22 notitle;
+
+# HEWL B22 Regression smallgrid
+set size square;
+unset title
+set key top left spacing 1.5 font "Helvetica Bold,10";
+unset key;
+set output 'B22_hewl_2_small_grid.ps';
+set xrange [-10:45];
+set yrange [-10:158];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,24";
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+#set label "R^2=0.95" at 2.5,0
+set xtics font "Helvetica Bold,24";
+set ytics font "Helvetica Bold,24";
+plot 'B22_hewl_small_grid.dat' u 1:2:3 w yerrorbars ls 23 notitle,\
+'B22_hewl_small_grid.dat' u 1:2:3 w p ls 23 title 'pH3,5mM',\
+'B22_hewl_small_grid.dat' u 4:5:6 w yerrorbars ls 26 notitle,\
+'B22_hewl_small_grid.dat' u 4:5:6 w p ls 26 title 'pH3,100mM',\
+'B22_hewl_small_grid.dat' u 7:8:9 w yerrorbars ls 29 notitle,\
+'B22_hewl_small_grid.dat' u 7:8:9 w p ls 29 title 'pH3,500mM',\
+'B22_hewl_small_grid.dat' u 10:11:12 w yerrorbars ls 24 notitle,\
+'B22_hewl_small_grid.dat' u 10:11:12 w p ls 24 title 'pH6,5mM',\
+'B22_hewl_small_grid.dat' u 13:14:15 w yerrorbars ls 27 notitle,\
+'B22_hewl_small_grid.dat' u 13:14:15 w p ls 27 title 'pH6,100mM',\
+'B22_hewl_small_grid.dat' u 16:17:18 w yerrorbars ls 30 notitle,\
+'B22_hewl_small_grid.dat' u 16:17:18 w p ls 30 title 'pH6,500mM',\
+'B22_hewl_small_grid.dat' u 19:20:21 w yerrorbars ls 25 notitle,\
+'B22_hewl_small_grid.dat' u 19:20:21 w p ls 25 title 'pH9,5mM',\
+'B22_hewl_small_grid.dat' u 22:23:24 w yerrorbars ls 28 notitle,\
+'B22_hewl_small_grid.dat' u 22:23:24 w p ls 28 title 'pH9,100mM',\
+'B22_hewl_small_grid.dat' u 25:26:27 w yerrorbars ls 31 notitle,\
+'B22_hewl_small_grid.dat' u 25:26:27 w p ls 31 title 'pH9,500mM',\
+'B22_hewl_donnan.dat' u 1:2 w p ls 32 title 'pH3,5mM+donnan',\
+'B22_hewl_donnan.dat' u 3:4 w p ls 33 title 'pH3,5mM+donnan',\
+'B22_hewl_donnan.dat' u 5:6 w p ls 34 title 'pH3,5mM+donnan',\
+'B22_hewl.dat' u 1:2:3 w p ls 1 title 'pH3,5mM large',\
+'B22_hewl.dat' u 10:11:12 w p ls 2 title 'pH6,5mM large',\
+'B22_hewl.dat' u 19:20:21 w p ls 3 title 'pH9,5mM large';
+
+unset y2tics;
+
+# BPTI B22
+unset title
+set size square;
+set key top right spacing 1.5 font "Helvetica Bold,24";
+set output 'B22_bpti_1.ps';
+set xlabel "pH" offset +0,-2 font "Helvetica,24";
+set ylabel "B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+set ytics auto font "Helvetica Bold,24";
+set xtics auto font "Helvetica Bold,24";
+set xrange [250:850];
+set yrange [-8:5];
+set xtic rotate by 0;
+plot 'B22_bpti.dat' u 1:2 w p ls 23 title 'Exp.',\
+'B22_bpti.dat' u 1:3:4 ls 24 w yerrorbars title 'Comp.';
+
+# BPTI B22 Regression + donnan
+unset title
+set size square;
+set key bottom right spacing 1.5 font "Helvetica Bold,24"
+set output 'B22_bpti_2_donn.ps';
+set xrange [-6:6];
+set yrange [-6:6];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})" offset +0,-2 font "Helvetica,24";
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+#set label "R^2=0.95" at 2.5,0
+set ytics auto font "Helvetica Bold,24";
+set xtics auto font "Helvetica Bold,24";
+e(x)=0.93*x+0.1
+ll(x)=1.0*x
+plot 'B22_bpti.dat' u 2:3:4:5 with xyerrorbars ls 1 notitle,\
+'B22_bpti.dat' u 2:6 w p ls 34 notitle,\
+ll(x) w l ls 22 notitle;
+#e(x) w l ls 21 notitle,\
+
+
+# T4 B22 
+unset title 
+unset label
+unset key;
+set key inside top right spacing 1.5 font "Helvetica Bold,24";
+unset key
+set output 'B22_t4.ps';
+set xrange [0:4];
+set yrange [-4:5];
+set xtics ("WT" 1, "S44K" 2, "S44F" 3) font "Helvetica, 24";
+set ytics auto font "Helvetica Bold,24";
+set bars 4.0;
+set xlabel "" offset +0,-2;
+set ylabel "B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+plot 'B22_t4.dat' u 1:2 w p ls 23 title 'Exp.',\
+'B22_t4.dat' u 1:2:3 w yerrorbars ls 23 notitle,\
+'B22_t4.dat' u 1:4:5 w yerrorbars ls 32 notitle,\
+'B22_t4.dat' u 1:4 w p ls 32 title 'Comp.',\
+'B22_t4.dat' u 1:6 w p ls 72 title 'Comp.*';
+
+unset xtics
+set xtics
+
+## HEWL B22 Regression
+#set size square;
+#unset title
+#set key top left spacing 1.5 font "Helvetica Bold,10";
+#set output 'B22_hewl_2_zoom.ps';
+#set xrange [-10:10];
+#set yrange [-10:10];
+#set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,24";
+#set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+##set label "R^2=0.95" at 2.5,0
+#set xtics font "Helvetica Bold,24";
+#set ytics font "Helvetica Bold,24";
+#e(x)=0.63*x+0.96
+#ll(x)=1.0*x
+#plot 'B22_hewl.dat' u 4:5:6 w yerrorbars ls 26 notitle,\
+#'B22_hewl.dat' u 4:5:6 w p ls 26 title 'pH3,100mM',\
+#'B22_hewl.dat' u 7:8:9 w yerrorbars ls 29 notitle,\
+#'B22_hewl.dat' u 7:8:9 w p ls 29 title 'pH3,500mM',\
+#'B22_hewl.dat' u 13:14:15 w yerrorbars ls 27 notitle,\
+#'B22_hewl.dat' u 13:14:15 w p ls 27 title 'pH6,100mM',\
+#'B22_hewl.dat' u 16:17:18 w yerrorbars ls 30 notitle,\
+#'B22_hewl.dat' u 16:17:18 w p ls 30 title 'pH6,500mM',\
+#'B22_hewl.dat' u 22:23:24 w yerrorbars ls 28 notitle,\
+#'B22_hewl.dat' u 22:23:24 w p ls 28 title 'pH9,100mM',\
+#'B22_hewl.dat' u 25:26:27 w yerrorbars ls 31 notitle,\
+#'B22_hewl.dat' u 25:26:27 w p ls 31 title 'pH9,500mM',\
+#e(x) w l ls 21 notitle,\
+#ll(x) w l ls 22 notitle;
+#
+## HEWL B22 Donnan
+#set size square;
+#unset title
+#set key top right spacing 1.5 font "Helvetica Bold,10";
+#set output 'B22_hewl_donnan_astha.ps';
+#set xrange [0:9];
+#set yrange [10:160];
+#set xlabel "pH"  offset +0,-2 font "Helvetica,24";
+#set ylabel "B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+##set label "R^2=0.95" at 2.5,0
+#set xtics font "Helvetica Bold,24";
+#set ytics font "Helvetica Bold,24";
+#plot 'B22_hewl_donnan.dat' u 1:2 w p ls 23 title "Velev IS=5mM",\
+#'B22_hewl_donnan.dat' u 1:3 w p ls 26 title "Asthagiri IS=7mM",\
+#'B22_hewl_donnan.dat' u 1:4 w p ls 27 title "Asthagiri IS=15mM",\
+#'B22_hewl_donnan.dat' u 1:5 w p ls 29 title "Computed IS=5mM";
+
+
+
+# HEWL B22 Regression + donnan 100 mM, 500 mM
+set size square;
+set origin 0,0;
+
+set output 'B22_hewl_2_5_100_500mM.ps';
+set multiplot           # This will followed by two plots
+
+set origin 0,0
+
+# HEWL B22 Regression + donannd 5mM + 100mM + 500 mM
+unset title
+#set key outside top right spacing 1.5 font "Helvetica Bold,10";
+unset key;
+set xrange [-10:45];
+set yrange [-10:160];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,24";
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,24";
+#set label "R^2=0.95" at 2.5,0
+set xtics font "Helvetica Bold,24";
+unset y2tics;
+set ytics font "Helvetica Bold,24";
+e(x)=0.63*x+0.96
+ll(x)=1.0*x
+plot 'B22_hewl.dat' u 1:2:3 w yerrorbars ls 23 notitle,\
+'B22_hewl.dat' u 1:2:3 w p ls 23 title 'pH3,5mM',\
+'B22_hewl.dat' u 4:5:6 w yerrorbars ls 26 notitle,\
+'B22_hewl.dat' u 4:5:6 w p ls 26 title 'pH3,100mM',\
+'B22_hewl.dat' u 7:8:9 w yerrorbars ls 29 notitle,\
+'B22_hewl.dat' u 7:8:9 w p ls 29 title 'pH3,500mM',\
+'B22_hewl.dat' u 10:11:12 w yerrorbars ls 24 notitle,\
+'B22_hewl.dat' u 10:11:12 w p ls 24 title 'pH6,5mM',\
+'B22_hewl.dat' u 13:14:15 w yerrorbars ls 27 notitle,\
+'B22_hewl.dat' u 13:14:15 w p ls 27 title 'pH6,100mM',\
+'B22_hewl.dat' u 16:17:18 w yerrorbars ls 30 notitle,\
+'B22_hewl.dat' u 16:17:18 w p ls 30 title 'pH6,500mM',\
+'B22_hewl.dat' u 19:20:21 w yerrorbars ls 25 notitle,\
+'B22_hewl.dat' u 19:20:21 w p ls 25 title 'pH9,5mM',\
+'B22_hewl.dat' u 22:23:24 w yerrorbars ls 28 notitle,\
+'B22_hewl.dat' u 22:23:24 w p ls 28 title 'pH9,100mM',\
+'B22_hewl.dat' u 25:26:27 w yerrorbars ls 31 notitle,\
+'B22_hewl.dat' u 25:26:27 w p ls 31 title 'pH9,500mM',\
+ll(x) w l ls 22 notitle;
+#e(x) w l ls 21 notitle;
+
+set origin 0.28,0.58
+set size 0.35,0.35
+
+unset title
+set key outside top right spacing 1.5 font "Helvetica Bold,10";
+unset key;
+#set output 'B22_hewl_2_donn_100_500mM.ps';
+set xrange [-10:10];
+set yrange [-10:10];
+set xlabel "Exp. B_{22} (x10^4 mol mL g^{-2})"  offset +0,-2 font "Helvetica,20";
+unset xlabel;
+set ylabel "Comp. B_{22} (x10^4 mol mL g^{-2})" offset -2,+0 font "Helvetica,20";
+unset ylabel;
+#set label "R^2=0.95" at 2.5,0
+set xtics font "Helvetica Bold,20";
+set ytics font "Helvetica Bold,20";
+unset ytics;
+set y2tics font "Helvetica Bold,20";
+e(x)=0.63*x+0.96
+#e(x)=0.97*x+3.98
+ll(x)=1.0*x
+plot 'B22_hewl.dat' u 4:5:6 w yerrorbars ls 46 notitle,\
+'B22_hewl.dat' u 4:5:6 w p ls 46 title 'pH3,100mM',\
+'B22_hewl.dat' u 7:8:9 w yerrorbars ls 49 notitle,\
+'B22_hewl.dat' u 7:8:9 w p ls 49 title 'pH3,500mM',\
+'B22_hewl.dat' u 13:14:15 w yerrorbars ls 47 notitle,\
+'B22_hewl.dat' u 13:14:15 w p ls 47 title 'pH6,100mM',\
+'B22_hewl.dat' u 16:17:18 w yerrorbars ls 50 notitle,\
+'B22_hewl.dat' u 16:17:18 w p ls 50 title 'pH6,500mM',\
+'B22_hewl.dat' u 22:23:24 w yerrorbars ls 48 notitle,\
+'B22_hewl.dat' u 22:23:24 w p ls 48 title 'pH9,100mM',\
+'B22_hewl.dat' u 25:26:27 w yerrorbars ls 51 notitle,\
+'B22_hewl.dat' u 25:26:27 w p ls 51 title 'pH9,500mM',\
+ll(x) w l ls 22 notitle;
+#e(x) w l ls 21 notitle;
+
+set nomultiplot
+set size 1,1
+

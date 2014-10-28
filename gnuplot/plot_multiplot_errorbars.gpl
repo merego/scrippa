@@ -1,0 +1,355 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+#set terminal pngcairo enhanced size 1000, 800
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 1($1/s):  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 2 lt 2 lw 5.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 3 lw 5.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 4 lw 5.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 5 lw 5.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FF9900" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FFFF00" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+set style line 11 lt 1 lw 2.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 12 lt 2 lw 2.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 13 lt 3 lw 2.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 14 lt 4 lw 2.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 15 lt 5 lw 2.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 16 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 17 lt 1 lw 2.5 pt 7 ps 3.0 lc rgb "#FF9900" # light yellow
+set style line 18 lt 1 lw 2.5 pt 8 ps 3.0 lc rgb "#FFFF00" # orange 
+set style line 19 lt 1 lw 2.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 20 lt 1 lw 2.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+# Predefined B/W
+set style line 21 lt 1 lw 2.5 pt 1 ps 2.0 lc rgb "#000000" #black, large continuos, point : filled circle
+set style line 22 lt 8 lw 5.5 pt 7 ps 3.0 lc rgb "#880000" #dark red, large dashed , point : filled circle
+
+set style line 23 lt 1 lw 1.0 pt 1 ps 3.0 lc rgb "#880000" # black
+set style line 24 lt 1 lw 5.0 pt 5 ps 3.0 lc rgb "#880000" # dark red
+set style line 25 lt 2 lw 5.5 pt 4 ps 3.0 lc rgb "#008800" # dark green
+set style line 26 lt 3 lw 5.5 pt 8 ps 3.0 lc rgb "#000088" # dark blue
+set style line 27 lt 4 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange
+set style line 28 lt 5 lw 5.5 pt 8 ps 3.0 lc rgb "#888800" # yellow
+
+set encoding iso_8859_1
+
+unset grid;
+
+# Characteristc times
+#s=1000.0 # tau_b (relaxation time)
+dt=0.002 # timestep (fs)
+ntwx=10000.0 # frequency trajectory write out (frame)
+
+set tmargin 3;
+set bmargin 4.5;
+set lmargin 13;
+set rmargin 3;
+set format y "%5.2f"
+
+###################################################################################################
+## Plot rmsd
+set output 'ps/rmsd.ps';
+
+# MAIN PLOT
+set origin 0,0
+set size 1.0,1.0
+set title "RMSD" font "Helvetica Bold,24";
+set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "RMSD ({\305})" font "Helvetica,24" offset -1,0;
+set key bottom right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+set ytics auto font "Helvetica Bold,24";
+set xtics auto font "Helvetica Bold,24";
+#set xrange auto; # [100/s:1000.0/s];
+#set yrange auto; # [0.1:5e4];
+plot\
+'../ana/rmsd_allatoms.dat' u ($1*dt*ntwx/1000.0):2 ls 1 w l title 'allatoms',\
+'../ana/rmsd_backbone.dat' u ($1*dt*ntwx/1000.0):2 ls 3 w l title 'backbone';
+
+###################################################################################################
+## Plot radius gyration
+set output 'ps/rgyr.ps';
+
+# MAIN PLOT
+set origin 0,0
+set size 1.0,1.0
+set title "Radius of gyration" font "Helvetica Bold,24";
+set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "R_{g} ({\305})" font "Helvetica,24" offset -2,0;
+set key bottom right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+set ytics auto font "Helvetica Bold,24";
+#set format y "%6.0e"
+set xtics auto font "Helvetica Bold,24";
+#set xrange auto; # [100/s:1000.0/s];
+#set yrange auto; # [0.1:5e4];
+plot\
+'../ana/rgyr_allatoms.dat' u ($1*dt*ntwx/1000.0):2 ls 1 w l title 'allatoms';
+
+###################################################################################################
+## Plot Total energy
+set output 'ps/ETOT.ps';
+
+# MAIN PLOT
+set origin 0,0
+set size 1.0,1.0
+set title "Total energies" font "Helvetica Bold,24";
+set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "Energy (kcal/mol/10^5)" font "Helvetica,24" offset -2,0;
+set key bottom right spacing 1.5 font "Helvetica Bold,24"
+set key at graph 1.0,0.4
+unset x2tics;
+unset xtics;
+set ytics auto font "Helvetica Bold,24";
+#set format y "%6.0e"
+set xtics auto font "Helvetica Bold,24";
+#set xrange auto; # [100/s:1000.0/s];
+#set yrange auto; # [0.1:5e4];
+plot\
+'../ana/summary/summary.ETOT' u ($1/1000.0):($2/10000) ls 1 smooth cspline title 'ETOT (spline smooth)',\
+'../ana/summary/summary.EPTOT' u ($1/1000.0):($2/10000) ls 2 smooth cspline title 'EPTOT (spline smooth)',\
+'../ana/summary/summary.EKTOT' u ($1/1000.0):($2/10000) ls 3 smooth cspline title 'EKTOT (spline smooth)';
+set key default ## to reset key dafault position
+
+###################################################################################################
+## Plot Temperature
+set output 'ps/TEMP.ps';
+set format '%5.1f';
+# MAIN PLOT
+set origin 0,0
+set size 1.0,1.0
+set title "Temperature" font "Helvetica Bold,24";
+set xlabel "time (ns)" font "Helvetica,24" offset +0,-0.5;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "Temp. (K)" font "Helvetica,24" offset -2,0;
+set key bottom right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+set ytics auto font "Helvetica Bold,24";
+#set format y "%6.0e"
+set xtics auto font "Helvetica Bold,24";
+#set xrange auto; # [100/s:1000.0/s];
+#set yrange auto; # [0.1:5e4];
+plot\
+'../ana/summary/summary.TEMP' u ($1/1000.0):2 ls 1 w l title 'TEMP',\
+'../ana/summary/summary.TEMP' u ($1/1000.0):2:(1000) ls 2 smooth acsplines title 'TEMP (spline smooth)';
+
+
+###################################################################################################
+## Plot BP
+NX=2; NY=3
+DXL=0.1;
+DXR=0.02;
+DYB=0.2;
+DYT=0.08;
+DDX=0.12
+DDY=0.08
+SX=(1.0-(DXL+DXR+(NX-1)*DDX))/NX;
+SY=(1.0-(DYB+DYT+(NY-1)*DDY))/NY;
+
+set bmargin DYB; set tmargin DYT; set lmargin DXL; set rmargin DXR
+set border lw 2
+
+
+
+set output 'ps/BP.stats.ps';
+set origin 0.0,0.0;
+set size SX*NX+DXL+DXR+DDX*(NX-1),SY*NY+DYB+DYT+DDY*(NY-1)
+
+set multiplot
+
+# Shear, Stretch, Stagger, Buckle, Propeller, Opening
+set origin DXL,DYB
+set size SX,SY
+set title "Shear" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+set ytics auto font "Helvetica Bold,14";
+unset xlabel;
+set xtics rotate 90 ( "2:42" 1,"17:33" 2,"22:29" 3,"1:43" 4,"18:32" 5,"16:34" 6,"23:28" 7,"3:41" 8,"14:36" 9,"15:36" 10,"4:40" 11,"19:31" 12 ) font "Helvetica,Bold 14";
+set xrange [0:13];
+unset key;
+plot '../ana/BP.stats.dat' u 1:8:20:26 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB
+set title "Propeller" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BP.stats.dat' u 1:12:24:30 w yerrorbars ls 21 notitle;
+
+set origin DXL,DYB+SY+DDY
+unset xtics;
+set title "Stagger" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BP.stats.dat' u 1:10:22:28 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB+SY+DDY
+set title "Buckle" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BP.stats.dat' u 1:11:23:29 w yerrorbars ls 21 notitle;
+
+set origin DXL,DYB+2*SY+2*DDY
+set title "Stretch" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BP.stats.dat' u 1:9:21:27 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB+2*SY+2*DDY
+set title "Opening" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BP.stats.dat' u 1:13:25:31 w yerrorbars ls 21 notitle;
+
+
+unset multiplot
+
+###################################################################################################
+## Plot BPstep
+NX=2; NY=3
+DXL=0.1;
+DXR=0.02;
+DYB=0.2;
+DYT=0.08;
+DDX=0.12
+DDY=0.08
+SX=(1.0-(DXL+DXR+(NX-1)*DDX))/NX;
+SY=(1.0-(DYB+DYT+(NY-1)*DDY))/NY;
+
+set bmargin DYB; set tmargin DYT; set lmargin DXL; set rmargin DXR
+set border lw 2
+
+
+
+set output 'ps/BPstep.stats.ps';
+set origin 0.0,0.0;
+set size SX*NX+DXL+DXR+DDX*(NX-1),SY*NY+DYB+DYT+DDY*(NY-1)
+
+set multiplot
+
+# Shift, Slide, Rise, Tilt, Roll, Twist
+set origin DXL,DYB
+set size SX,SY
+set title "Shift" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+set ytics auto font "Helvetica Bold,14";
+unset xlabel;
+set xtics rotate 90 ( "2:42-3:41" 1,"16:34-17:33" 2,"4:40-14:36" 3,"22:29-23:28" 4,"2:41-3:40" 5,"3:40-14:36" 6,"15:36-16:34" 7,"1:43-2:42" 8,"15:35-16:34" 9,"18:32-19:31" 10,"14:36-15:35" 11,"17:33-18:32" 12,"19:31-22:29" 13,"3:41-22:29" 14  ) font "Helvetica,Bold 14";
+set xrange [0:15];
+unset key;
+plot '../ana/BPstep.stats.dat' u 1:8:20:26 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB
+set title "Roll" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BPstep.stats.dat' u 1:12:24:30 w yerrorbars ls 21 notitle;
+
+set origin DXL,DYB+SY+DDY
+unset xtics;
+set title "Rise" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BPstep.stats.dat' u 1:10:22:28 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB+SY+DDY
+set title "Tilt" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BPstep.stats.dat' u 1:11:23:29 w yerrorbars ls 21 notitle;
+
+set origin DXL,DYB+2*SY+2*DDY
+set title "Slide" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BPstep.stats.dat' u 1:9:21:27 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB+2*SY+2*DDY
+set title "Twist" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/BPstep.stats.dat' u 1:13:25:31 w yerrorbars ls 21 notitle;
+
+
+unset multiplot
+
+###################################################################################################
+## Plot Helix
+NX=2; NY=3
+DXL=0.1;
+DXR=0.02;
+DYB=0.2;
+DYT=0.08;
+DDX=0.12
+DDY=0.08
+SX=(1.0-(DXL+DXR+(NX-1)*DDX))/NX;
+SY=(1.0-(DYB+DYT+(NY-1)*DDY))/NY;
+
+set bmargin DYB; set tmargin DYT; set lmargin DXL; set rmargin DXR
+set border lw 2
+
+
+
+set output 'ps/Helix.stats.ps';
+set origin 0.0,0.0;
+set size SX*NX+DXL+DXR+DDX*(NX-1),SY*NY+DYB+DYT+DDY*(NY-1)
+
+set multiplot
+
+# Shift, Slide, Rise, Tilt, Roll, Twist
+set origin DXL,DYB
+set size SX,SY
+set title "Shift" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+set ytics auto font "Helvetica Bold,14";
+unset xlabel;
+set xtics rotate 90 ( "2:42-3:41" 1,"16:34-17:33" 2,"4:40-14:36" 3,"22:29-23:28" 4,"2:41-3:40" 5,"3:40-14:36" 6,"15:36-16:34" 7,"1:43-2:42" 8,"15:35-16:34" 9,"18:32-19:31" 10,"14:36-15:35" 11,"17:33-18:32" 12,"19:31-22:29" 13,"3:41-22:29" 14  ) font "Helvetica,Bold 14";
+set xrange [0:15];
+unset key;
+plot '../ana/Helix.stats.dat' u 1:8:20:26 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB
+set title "Roll" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/Helix.stats.dat' u 1:12:24:30 w yerrorbars ls 21 notitle;
+
+set origin DXL,DYB+SY+DDY
+unset xtics;
+set title "Rise" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/Helix.stats.dat' u 1:10:22:28 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB+SY+DDY
+set title "Tilt" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/Helix.stats.dat' u 1:11:23:29 w yerrorbars ls 21 notitle;
+
+set origin DXL,DYB+2*SY+2*DDY
+set title "Slide" font "Helvetica Bold,24";
+set ylabel "(\305)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/Helix.stats.dat' u 1:9:21:27 w yerrorbars ls 21 notitle;
+
+set origin DXL+DDX+SX,DYB+2*SY+2*DDY
+set title "Twist" font "Helvetica Bold,24";
+set ylabel "(Deg)" font "Helvetica,22" offset +1.5,0;
+plot '../ana/Helix.stats.dat' u 1:13:25:31 w yerrorbars ls 21 notitle;
+
+
+unset multiplot

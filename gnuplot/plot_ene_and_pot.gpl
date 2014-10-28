@@ -1,0 +1,800 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+# set size 1,1;
+set style line 1 lt 1 lw 6.5 pt 1 ps 0.05 lc rgb "#981717" # dark red
+set style line 2 lt 2 lw 6.5 pt 1 ps 0.05 lc rgb "#e02727" # ligh red
+set style line 3 lt 1 lw 6.5 pt 1 ps 0.05 lc rgb "#179823" # dark green
+set style line 4 lt 2 lw 6.5 pt 1 ps 0.05 lc rgb "#07ff01" # light green
+set style line 5 lt 1 lw 6.5 pt 1 ps 0.05 lc rgb "#271991" # dark blue
+set style line 6 lt 2 lw 6.5 pt 1 ps 0.05 lc rgb "#07adea" # ligh blue
+set style line 7 lt 1 lw 6.5 pt 1 ps 0.05 lc rgb "#black"
+
+set style line 8 lt 1 lw 1.5 pt 5 ps 1.5 lc rgb "#981717" # dark red
+set style line 9 lt 2 lw 2.5 pt 4 ps 1.5 lc rgb "#e02727" # ligh red
+set style line 10 lt 1 lw 2.5 pt 11  ps 1.5 lc rgb "#179823" # dark green
+set style line 11 lt 2 lw 2.5 pt 10 ps 1.5 lc rgb "#07ff01" # light green
+set style line 12 lt 1 lw 2.5 pt 7 ps 1.5 lc rgb "#271991" # dark blue
+set style line 13 lt 2 lw 2.5 pt 6 ps 1.5 lc rgb "#07adea" # ligh blue
+set style line 14 lt 1 lw 2.5 pt 13 ps 1.5 lc rgb "black" # 
+set style line 15 lt 2 lw 2.5 pt 12 ps 1.5 lc rgb "black" # 
+set style line 16 lt 2 lw 1.5 pt 7 ps 2.0 lc rgb "#black"
+set style line 17 lt 1 lw 2.5 pt 7 ps 2.0 lc rgb "#981717"
+
+set encoding iso_8859_1 
+set border lw 2 # thickness of the border
+
+# diameter 
+sigmai=6.0;
+ai=sigmai*2;
+sigmaj=6.0*2;
+aj=sigmaj*2;
+
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Electrostatic Potential  5 mM
+##############################################################################################################
+##############################################################################################################
+
+
+NX=2; NY=2
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+
+set output 'ps/DH_potential_5mM.eps';
+set size SX*NX+DX*2.0+DDX,SY*NY+DY*2.0+DDY
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY+SY+DDY;
+set ylabel "V (kcal/mol/e)" font "Helvetica, 24";
+unset xlabel;
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xtics auto;
+set xrange [sigmai/ai:40/ai];
+set yrange [-2:8];
+set ytics 2 font "Helvetica 24"
+# +1/-1, 5mM
+plot\
+'../analytical_model/DH+1_4_5_potential.dat' u ($1/ai):3 w l ls 1 title '+1, ana',\
+'../pdbs/EP+1_4_5/EP+1_4_5_potential.dat' u ($1/ai):2 w l ls 2 title '+1, uhbd',\
+'../analytical_model/DH+5_4_5_potential.dat' u ($1/ai):3 w l ls 3 title '+5, ana',\
+'../pdbs/EP+5_4_5/EP+5_4_5_potential.dat' u ($1/ai):2 w l ls 4 title '+5, uhbd',\
+'../analytical_model/DH+10_4_5_potential.dat' u ($1/ai):3 w l ls 5 title '+10, ana',\
+'../pdbs/EP+10_4_5/EP+10_4_5_potential.dat' u ($1/ai):2 w l ls 6 title '+10, uhbd';
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY+SY+DDY;
+set xrange [sigmai/ai:40/ai];
+set yrange [-8:2];
+set ytics 2 font "Helvetica 24"
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+# +5/-5, 5mM
+plot\
+'../analytical_model/DH-1_4_5_potential.dat' u ($1/ai):3 w l ls 1 title '-1, ana',\
+'../pdbs/EP-1_4_5/EP-1_4_5_potential.dat' u ($1/ai):2 w l ls 2 title '-1, uhbd',\
+'../analytical_model/DH-5_4_5_potential.dat' u ($1/ai):3 w l ls 3 title '-5, ana',\
+'../pdbs/EP-5_4_5/EP-5_4_5_potential.dat' u ($1/ai):2 w l ls 4 title '-5, uhbd',\
+'../analytical_model/DH-10_4_5_potential.dat' u ($1/ai):3 w l ls 5 title '-10, ana',\
+'../pdbs/EP-10_4_5/EP-10_4_5_potential.dat' u ($1/ai):2 w l ls 6 title '-10, uhbd';
+
+
+set title "{/Symbol s}=12.0 A" font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY;
+set xrange [sigmaj/aj:40/aj];
+set yrange [-1:4];
+set ytics 2 font "Helvetica 24"
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+1_8_5_potential.dat' u ($1/aj):3 w l ls 1 title '+1, ana',\
+'../pdbs/EP+1_8_5/EP+1_8_5_potential.dat' u ($1/aj):2 w l ls 2 title '+1, uhbd',\
+'../analytical_model/DH+5_8_5_potential.dat' u ($1/aj):3 w l ls 3 title '+5, ana',\
+'../pdbs/EP+5_8_5/EP+5_8_5_potential.dat' u ($1/aj):2 w l ls 4 title '+5, uhbd',\
+'../analytical_model/DH+10_8_5_potential.dat' u ($1/aj):3 w l ls 5 title '+10, ana',\
+'../pdbs/EP+10_8_5/EP+10_8_5_potential.dat' u ($1/aj):2 w l ls 6 title '+10, uhbd';
+
+set title "{/Symbol s}=12.0 A" font "Helvetica, 24"
+set key bottom right font "Helvetica, 20";
+set origin DX,DY;
+set xrange [sigmaj/aj:40/aj];
+set yrange [-4:1];
+set ytics 2 font "Helvetica 24"
+#set ytic ("-14" -14, "-12" -12, "-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH-1_8_5_potential.dat' u ($1/aj):3 w l ls 1 title '-1, ana',\
+'../pdbs/EP-1_8_5/EP-1_8_5_potential.dat' u ($1/aj):2 w l ls 2 title '-1, uhbd',\
+'../analytical_model/DH-5_8_5_potential.dat' u ($1/aj):3 w l ls 3 title '-5, ana',\
+'../pdbs/EP-5_8_5/EP-5_8_5_potential.dat' u ($1/aj):2 w l ls 4 title '-5, uhbd',\
+'../analytical_model/DH-10_8_5_potential.dat' u ($1/aj):3 w l ls 5 title '-10, ana',\
+'../pdbs/EP-10_8_5/EP-10_8_5_potential.dat' u ($1/aj):2 w l ls 6 title '-10, uhbd';
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Electrostatic Potential  300 mM
+##############################################################################################################
+##############################################################################################################
+
+
+NX=2; NY=2
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+
+set output 'ps/DH_potential_300mM.eps';
+set size SX*NX+DX*2.0+DDX,SY*NY+DY*2.0+DDY
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY+SY+DDY;
+set ylabel "V (kcal/mol/e)" font "Helvetica, 24";
+unset xlabel;
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xtics auto;
+set xrange [sigmai/ai:40/ai];
+set yrange [-2:8];
+set ytics 2 font "Helvetica 24"
+# +1/-1, 5mM
+plot\
+'../analytical_model/DH+1_4_300_potential.dat' u ($1/ai):3 w l ls 1 title '+1, ana',\
+'../pdbs/EP+1_4_300/EP+1_4_300_potential.dat' u ($1/ai):2 w l ls 2 title '+1, uhbd',\
+'../analytical_model/DH+5_4_300_potential.dat' u ($1/ai):3 w l ls 3 title '+5, ana',\
+'../pdbs/EP+5_4_300/EP+5_4_300_potential.dat' u ($1/ai):2 w l ls 4 title '+5, uhbd',\
+'../analytical_model/DH+10_4_300_potential.dat' u ($1/ai):3 w l ls 5 title '+10, ana',\
+'../pdbs/EP+10_4_300/EP+10_4_300_potential.dat' u ($1/ai):2 w l ls 6 title '+10, uhbd';
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY+SY+DDY;
+set xrange [sigmai/ai:40/ai];
+set yrange [-8:2];
+set ytics 2 font "Helvetica 24"
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+# +5/-5, 5mM
+plot\
+'../analytical_model/DH-1_4_300_potential.dat' u ($1/ai):3 w l ls 1 title '-1, ana',\
+'../pdbs/EP-1_4_300/EP-1_4_300_potential.dat' u ($1/ai):2 w l ls 2 title '-1, uhbd',\
+'../analytical_model/DH-5_4_300_potential.dat' u ($1/ai):3 w l ls 3 title '-5, ana',\
+'../pdbs/EP-5_4_300/EP-5_4_300_potential.dat' u ($1/ai):2 w l ls 4 title '-5, uhbd',\
+'../analytical_model/DH-10_4_300_potential.dat' u ($1/ai):3 w l ls 5 title '-10, ana',\
+'../pdbs/EP-10_4_300/EP-10_4_300_potential.dat' u ($1/ai):2 w l ls 6 title '-10, uhbd';
+
+
+set title "{/Symbol s}=12.0 A" font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY;
+set xrange [sigmaj/aj:40/aj];
+set yrange [-1:4];
+set ytics 2 font "Helvetica 24"
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+1_8_300_potential.dat' u ($1/aj):3 w l ls 1 title '+1, ana',\
+'../pdbs/EP+1_8_300/EP+1_8_300_potential.dat' u ($1/aj):2 w l ls 2 title '+1, uhbd',\
+'../analytical_model/DH+5_8_300_potential.dat' u ($1/aj):3 w l ls 3 title '+5, ana',\
+'../pdbs/EP+5_8_300/EP+5_8_300_potential.dat' u ($1/aj):2 w l ls 4 title '+5, uhbd',\
+'../analytical_model/DH+10_8_300_potential.dat' u ($1/aj):3 w l ls 5 title '+10, ana',\
+'../pdbs/EP+10_8_300/EP+10_8_300_potential.dat' u ($1/aj):2 w l ls 6 title '+10, uhbd';
+
+set title "{/Symbol s}=12.0 A" font "Helvetica, 24"
+set key bottom right font "Helvetica, 20";
+set origin DX,DY;
+set xrange [sigmaj/aj:40/aj];
+set yrange [-4:1];
+set ytics 2 font "Helvetica 24"
+#set ytic ("-14" -14, "-12" -12, "-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH-1_8_300_potential.dat' u ($1/aj):3 w l ls 1 title '-1, ana',\
+'../pdbs/EP-1_8_300/EP-1_8_300_potential.dat' u ($1/aj):2 w l ls 2 title '-1, uhbd',\
+'../analytical_model/DH-5_8_300_potential.dat' u ($1/aj):3 w l ls 3 title '-5, ana',\
+'../pdbs/EP-5_8_300/EP-5_8_300_potential.dat' u ($1/aj):2 w l ls 4 title '-5, uhbd',\
+'../analytical_model/DH-10_8_300_potential.dat' u ($1/aj):3 w l ls 5 title '-10, ana',\
+'../pdbs/EP-10_8_300/EP-10_8_300_potential.dat' u ($1/aj):2 w l ls 6 title '-10, uhbd';
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Potential energy 300mM
+##############################################################################################################
+##############################################################################################################
+
+NX=3; NY=2
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+set output 'ps/DH_potential_ene_300mM.eps';
+#set size SX*NX+DX*2.0+DDX,SY*NY+DY*2.0+DDY
+set size SX*NX+DX*2.0+DDX*(NX-1),SY*NY+DY*2.0+DDY*(NY-1)
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "z +1,-1, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY+SY+DDY;
+set xrange [0:150/ai];
+set yrange [-0.2:0.2];
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set ytics 0.1 font "Helvetica, 24";
+plot\
+'../analytical_model/DH+1+1_44_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+1 +1, ana',\
+'../1+1_44_300/ene.dat' u ($1/ai):2 w p ls 2 title '+1 +1 4-4, sdamm',\
+'../analytical_model/DH+1-1_44_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+1 -1, ana',\
+'../1-1_44_300/ene.dat' u ($1/ai):2 w p ls 4 title '+1 -1 4-4, sdamm';
+
+set title "z +5,-5, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY+SY+DDY;
+set ylabel "W (kcal/mol)" font "Helvetica, 24";
+unset xlabel;
+#set ytic ("10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+#set xtic rotate by 0 nomirror font "Helvetica, 20";
+set ytics 2 font "Helvetica, 24";
+set xtics auto;
+set ytics auto font "Helvetica, 24";
+set xrange [0:150/ai];
+set yrange [-5:5];
+plot\
+'../analytical_model/DH+5+5_44_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+5 +5, ana',\
+'../5+5_44_300/ene.dat' u ($1/ai):2 w p ls 2 title '+5 +5 4-4, sdamm',\
+'../analytical_model/DH+5-5_44_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+5 -5, ana',\
+'../5-5_44_300/ene.dat' u ($1/ai):2 w p ls 4 title '+5 -5 4-4, sdamm';
+
+
+set title "z +10,-10, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+2*SX+2*DDX,DY+SY+DDY;
+set xrange [0:150/ai];
+set yrange [-9:9];
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set ytics 3 font "Helvetica, 24";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a_i" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+10+10_44_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+10 +10, ana',\
+'../10+10_44_300/ene.dat' u ($1/ai):2 w p ls 2 title '+10 +10 4-4, sdamm',\
+'../analytical_model/DH+10-10_44_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+10 -10, ana',\
+'../10-10_44_300/ene.dat' u ($1/ai):2 w p ls 4 title '+10 -10 4-4, sdamm';
+
+set title "z +1,-1, {/Symbol s} 6.0-12.0 {\305}"  font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY;
+set xrange [0:150/ai];
+set yrange [-0.2:0.2];
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set ytics 0.1 font "Helvetica, 24";
+plot\
+'../analytical_model/DH+1+1_48_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+1 +1, ana',\
+'../1+1_48_300/ene.dat' u ($1/ai):2 w p ls 2 title '+1 +1 4-4, sdamm',\
+'../analytical_model/DH+1-1_48_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+1 -1, ana',\
+'../1-1_48_300/ene.dat' u ($1/ai):2 w p ls 4 title '+1 -1 4-4, sdamm';
+
+set title "z +5,-5, {/Symbol s} 6.0-12.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY;
+set ylabel "W (kcal/mol)" font "Helvetica, 24";
+unset xlabel;
+#set ytic ("10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+#set xtic rotate by 0 nomirror font "Helvetica, 20";
+set ytics 2 font "Helvetica, 24";
+set xtics auto;
+set ytics auto font "Helvetica, 24";
+set xrange [0:150/ai];
+set yrange [-5:5];
+plot\
+'../analytical_model/DH+5+5_48_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+5 +5, ana',\
+'../5+5_48_300/ene.dat' u ($1/ai):2 w p ls 2 title '+5 +5 4-4, sdamm',\
+'../analytical_model/DH+5-5_48_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+5 -5, ana',\
+'../5-5_48_300/ene.dat' u ($1/ai):2 w p ls 4 title '+5 -5 4-4, sdamm';
+
+
+set title "z +10,-10, {/Symbol s} 6.0-12.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+2*SX+2*DDX,DY;
+set xrange [0:150/ai];
+set yrange [-9:9];
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set ytics 3 font "Helvetica, 24";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a_i" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+10+10_48_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+10 +10, ana',\
+'../10+10_48_300/ene.dat' u ($1/ai):2 w p ls 2 title '+10 +10, sdamm',\
+'../analytical_model/DH+10-10_48_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+10 -10, ana',\
+'../10-10_48_300/ene.dat' u ($1/ai):2 w p ls 4 title '+10 -10, sdamm';
+
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Potential energy 5 mM
+##############################################################################################################
+##############################################################################################################
+
+NX=3; NY=2
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+set output 'ps/DH_potential_ene_5mM.eps';
+#set size SX*NX+DX*2.0+DDX,SY*NY+DY*2.0+DDY
+set size SX*NX+DX*2.0+DDX*(NX-1),SY*NY+DY*2.0+DDY*(NY-1)
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "z +1,-1, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY+SY+DDY;
+set xrange [0:150/ai];
+set yrange [-0.2:0.2];
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set ytics 0.1 font "Helvetica, 24";
+plot\
+'../analytical_model/DH+1+1_44_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+1 +1, ana',\
+'../1+1_44_5/ene.dat' u ($1/ai):2 w p ls 2 title '+1 +1 4-4, sdamm',\
+'../analytical_model/DH+1-1_44_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+1 -1, ana',\
+'../1-1_44_5/ene.dat' u ($1/ai):2 w p ls 4 title '+1 -1 4-4, sdamm';
+
+set title "z +5,-5, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY+SY+DDY;
+set ylabel "W (kcal/mol)" font "Helvetica, 24";
+unset xlabel;
+#set ytic ("10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+#set xtic rotate by 0 nomirror font "Helvetica, 20";
+set ytics 2 font "Helvetica, 24";
+set xtics auto;
+set ytics auto font "Helvetica, 24";
+set xrange [0:150/ai];
+set yrange [-5:5];
+plot\
+'../analytical_model/DH+5+5_44_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+5 +5, ana',\
+'../5+5_44_5/ene.dat' u ($1/ai):2 w p ls 2 title '+5 +5 4-4, sdamm',\
+'../analytical_model/DH+5-5_44_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+5 -5, ana',\
+'../5-5_44_5/ene.dat' u ($1/ai):2 w p ls 4 title '+5 -5 4-4, sdamm';
+
+
+set title "z +10,-10, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+2*SX+2*DDX,DY+SY+DDY;
+set xrange [0:150/ai];
+set yrange [-9:9];
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set ytics 3 font "Helvetica, 24";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a_i" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+10+10_44_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+10 +10, ana',\
+'../10+10_44_5/ene.dat' u ($1/ai):2 w p ls 2 title '+10 +10 4-4, sdamm',\
+'../analytical_model/DH+10-10_44_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+10 -10, ana',\
+'../10-10_44_5/ene.dat' u ($1/ai):2 w p ls 4 title '+10 -10 4-4, sdamm';
+
+set title "z +1,-1, {/Symbol s} 6.0-12.0 {\305}"  font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY;
+set xrange [0:150/ai];
+set yrange [-0.2:0.2];
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set ytics 0.1 font "Helvetica, 24";
+plot\
+'../analytical_model/DH+1+1_48_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+1 +1, ana',\
+'../1+1_48_5/ene.dat' u ($1/ai):2 w p ls 2 title '+1 +1 4-4, sdamm',\
+'../analytical_model/DH+1-1_48_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+1 -1, ana',\
+'../1-1_48_5/ene.dat' u ($1/ai):2 w p ls 4 title '+1 -1 4-4, sdamm';
+
+set title "z +5,-5, {/Symbol s} 6.0-12.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY;
+set ylabel "W (kcal/mol)" font "Helvetica, 24";
+unset xlabel;
+#set ytic ("10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+#set xtic rotate by 0 nomirror font "Helvetica, 20";
+set ytics 2 font "Helvetica, 24";
+set xtics auto;
+set ytics auto font "Helvetica, 24";
+set xrange [0:150/ai];
+set yrange [-5:5];
+plot\
+'../analytical_model/DH+5+5_48_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+5 +5, ana',\
+'../5+5_48_5/ene.dat' u ($1/ai):2 w p ls 2 title '+5 +5 4-4, sdamm',\
+'../analytical_model/DH+5-5_48_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+5 -5, ana',\
+'../5-5_48_5/ene.dat' u ($1/ai):2 w p ls 4 title '+5 -5 4-4, sdamm';
+
+
+set title "z +10,-10, {/Symbol s} 6.0-12.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+2*SX+2*DDX,DY;
+set xrange [0:150/ai];
+set yrange [-9:9];
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set ytics 3 font "Helvetica, 24";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a_i" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+10+10_48_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+10 +10, ana',\
+'../10+10_48_5/ene.dat' u ($1/ai):2 w p ls 2 title '+10 +10, sdamm',\
+'../analytical_model/DH+10-10_48_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+10 -10, ana',\
+'../10-10_48_5/ene.dat' u ($1/ai):2 w p ls 4 title '+10 -10, sdamm';
+
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+
+##################### ONLY smallest diameter #################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+
+##############################################################################################################
+# Debye-Hueckel Electrostatic Potential  5 mM
+##############################################################################################################
+##############################################################################################################
+
+
+NX=2; NY=1
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+
+set output 'ps/DH_potential_5mM_6Aonly.eps';
+set size SX*NX+DX*2.0+DDX*(NX-1),SY*NY+DY*2.0+DDY*(NY-1)
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key top right;
+set origin DX,DY;
+set ylabel "V (kcal/mol/e)" font "Helvetica, 24";
+unset xlabel;
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xtics auto;
+set xrange [sigmai/ai:40/ai];
+set yrange [-2:8];
+set ytics 2 font "Helvetica 24"
+# +1/-1, 5mM
+plot\
+'../analytical_model/DH+1_4_5_potential.dat' u ($1/ai):3 w l ls 1 title '+1, ana',\
+'../pdbs/EP+1_4_5/EP+1_4_5_potential.dat' u ($1/ai):2 w l ls 2 title '+1, uhbd',\
+'../analytical_model/DH+5_4_5_potential.dat' u ($1/ai):3 w l ls 3 title '+5, ana',\
+'../pdbs/EP+5_4_5/EP+5_4_5_potential.dat' u ($1/ai):2 w l ls 4 title '+5, uhbd',\
+'../analytical_model/DH+10_4_5_potential.dat' u ($1/ai):3 w l ls 5 title '+10, ana',\
+'../pdbs/EP+10_4_5/EP+10_4_5_potential.dat' u ($1/ai):2 w l ls 6 title '+10, uhbd';
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key bottom right;
+set origin DX+SX+DDX,DY;
+set xrange [sigmai/ai:40/ai];
+set yrange [-8:2];
+set ytics 2 font "Helvetica 24"
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+# +5/-5, 5mM
+plot\
+'../analytical_model/DH-1_4_5_potential.dat' u ($1/ai):3 w l ls 1 title '-1, ana',\
+'../pdbs/EP-1_4_5/EP-1_4_5_potential.dat' u ($1/ai):2 w l ls 2 title '-1, uhbd',\
+'../analytical_model/DH-5_4_5_potential.dat' u ($1/ai):3 w l ls 3 title '-5, ana',\
+'../pdbs/EP-5_4_5/EP-5_4_5_potential.dat' u ($1/ai):2 w l ls 4 title '-5, uhbd',\
+'../analytical_model/DH-10_4_5_potential.dat' u ($1/ai):3 w l ls 5 title '-10, ana',\
+'../pdbs/EP-10_4_5/EP-10_4_5_potential.dat' u ($1/ai):2 w l ls 6 title '-10, uhbd';
+
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Electrostatic Potential  300 mM
+##############################################################################################################
+##############################################################################################################
+
+
+NX=2; NY=1
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+set output 'ps/DH_potential_300mM_6Aonly.eps';
+set size SX*NX+DX*2.0+DDX*(NX-1),SY*NY+DY*2.0+DDY*(NY-1)
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key top right;
+set origin DX,DY;
+set ylabel "V (kcal/mol/e)" font "Helvetica, 24";
+unset xlabel;
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xtics auto;
+set xrange [sigmai/ai:40/ai];
+set yrange [-2:8];
+set ytics 2 font "Helvetica 24"
+# +1/-1, 5mM
+plot\
+'../analytical_model/DH+1_4_300_potential.dat' u ($1/ai):3 w l ls 1 title '+1, ana',\
+'../pdbs/EP+1_4_300/EP+1_4_300_potential.dat' u ($1/ai):2 w l ls 2 title '+1, uhbd',\
+'../analytical_model/DH+5_4_300_potential.dat' u ($1/ai):3 w l ls 3 title '+5, ana',\
+'../pdbs/EP+5_4_300/EP+5_4_300_potential.dat' u ($1/ai):2 w l ls 4 title '+5, uhbd',\
+'../analytical_model/DH+10_4_300_potential.dat' u ($1/ai):3 w l ls 5 title '+10, ana',\
+'../pdbs/EP+10_4_300/EP+10_4_300_potential.dat' u ($1/ai):2 w l ls 6 title '+10, uhbd';
+
+set title "{/Symbol s}=6.0 A" font "Helvetica, 24"
+set key bottom right;
+set origin DX+SX+DDX,DY;
+set xrange [sigmai/ai:40/ai];
+set yrange [-8:2];
+set ytics 2 font "Helvetica 24"
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+# +5/-5, 5mM
+plot\
+'../analytical_model/DH-1_4_300_potential.dat' u ($1/ai):3 w l ls 1 title '-1, ana',\
+'../pdbs/EP-1_4_300/EP-1_4_300_potential.dat' u ($1/ai):2 w l ls 2 title '-1, uhbd',\
+'../analytical_model/DH-5_4_300_potential.dat' u ($1/ai):3 w l ls 3 title '-5, ana',\
+'../pdbs/EP-5_4_300/EP-5_4_300_potential.dat' u ($1/ai):2 w l ls 4 title '-5, uhbd',\
+'../analytical_model/DH-10_4_300_potential.dat' u ($1/ai):3 w l ls 5 title '-10, ana',\
+'../pdbs/EP-10_4_300/EP-10_4_300_potential.dat' u ($1/ai):2 w l ls 6 title '-10, uhbd';
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Potential energy 300mM
+##############################################################################################################
+##############################################################################################################
+
+NX=3; NY=1
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+set output 'ps/DH_potential_ene_300mM_6Aonly.eps';
+set size SX*NX+DX*2.0+DDX*(NX-1),SY*NY+DY*2.0+DDY*(NY-1)
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "z +1,-1, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY;
+set xrange [0:150/ai];
+set yrange [-0.2:0.2];
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set ytics 0.1 font "Helvetica, 24";
+plot\
+'../analytical_model/DH+1+1_44_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+1 +1, ana',\
+'../1+1_44_300/ene.dat' u ($1/ai):2 w p ls 2 title '+1 +1 4-4, sdamm',\
+'../analytical_model/DH+1-1_44_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+1 -1, ana',\
+'../1-1_44_300/ene.dat' u ($1/ai):2 w p ls 4 title '+1 -1 4-4, sdamm';
+
+set title "z +5,-5, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY;
+set ylabel "W (kcal/mol)" font "Helvetica, 24";
+unset xlabel;
+#set ytic ("10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+#set xtic rotate by 0 nomirror font "Helvetica, 20";
+set ytics 2 font "Helvetica, 24";
+set xtics auto;
+set ytics auto font "Helvetica, 24";
+set xrange [0:150/ai];
+set yrange [-5:5];
+plot\
+'../analytical_model/DH+5+5_44_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+5 +5, ana',\
+'../5+5_44_300/ene.dat' u ($1/ai):2 w p ls 2 title '+5 +5 4-4, sdamm',\
+'../analytical_model/DH+5-5_44_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+5 -5, ana',\
+'../5-5_44_300/ene.dat' u ($1/ai):2 w p ls 4 title '+5 -5 4-4, sdamm';
+
+
+set title "z +10,-10, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+2*SX+2*DDX,DY;
+set xrange [0:150/ai];
+set yrange [-9:9];
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set ytics 3 font "Helvetica, 24";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a_i" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+10+10_44_300_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+10 +10, ana',\
+'../10+10_44_300/ene.dat' u ($1/ai):2 w p ls 2 title '+10 +10 4-4, sdamm',\
+'../analytical_model/DH+10-10_44_300_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+10 -10, ana',\
+'../10-10_44_300/ene.dat' u ($1/ai):2 w p ls 4 title '+10 -10 4-4, sdamm';
+
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+##############################################################################################################
+##############################################################################################################
+# Debye-Hueckel Potential energy 5 mM
+##############################################################################################################
+##############################################################################################################
+
+NX=3; NY=1
+DX=0.1; DY=0.1; SX=0.45; SY=0.45
+DDX=0.1
+DDY=0.2
+set bmargin DX; set tmargin DY; set lmargin DY; set rmargin DY
+
+
+set output 'ps/DH_potential_ene_5mM_6Aonly.eps';
+set size SX*NX+DX*2.0+DDX*(NX-1),SY*NY+DY*2.0+DDY*(NY-1)
+set key spacing 1.3 font "Helvetica, 20"
+
+set multiplot
+set size SX,SY
+
+set title "z +1,-1, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key bottom right;
+set origin DX,DY;
+set xrange [0:150/ai];
+set yrange [-0.2:0.2];
+#set ytic ("-10" -10, "-8" -8, "-6" -6, "-4" -4, "-2" -2, "0" 0) font "Helvetica, 20";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set ytics 0.1 font "Helvetica, 24";
+plot\
+'../analytical_model/DH+1+1_44_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+1 +1, ana',\
+'../1+1_44_5/ene.dat' u ($1/ai):2 w p ls 2 title '+1 +1 4-4, sdamm',\
+'../analytical_model/DH+1-1_44_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+1 -1, ana',\
+'../1-1_44_5/ene.dat' u ($1/ai):2 w p ls 4 title '+1 -1 4-4, sdamm';
+
+set title "z +5,-5, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+SX+DDX,DY;
+set ylabel "W (kcal/mol)" font "Helvetica, 24";
+unset xlabel;
+#set ytic ("10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+#set xtic rotate by 0 nomirror font "Helvetica, 20";
+set ytics 2 font "Helvetica, 24";
+set xtics auto;
+set ytics auto font "Helvetica, 24";
+set xrange [0:150/ai];
+set yrange [-5:5];
+plot\
+'../analytical_model/DH+5+5_44_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+5 +5, ana',\
+'../5+5_44_5/ene.dat' u ($1/ai):2 w p ls 2 title '+5 +5 4-4, sdamm',\
+'../analytical_model/DH+5-5_44_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+5 -5, ana',\
+'../5-5_44_5/ene.dat' u ($1/ai):2 w p ls 4 title '+5 -5 4-4, sdamm';
+
+
+set title "z +10,-10, {/Symbol s} 6.0-6.0 {\305}"  font "Helvetica, 24"
+set key top right;
+set origin DX+2*SX+2*DDX,DY;
+set xrange [0:150/ai];
+set yrange [-9:9];
+#set ytic ("14" 14, "12" 12, "10" 10, "8" 8, "6" 6, "4" 4, "2" 2, "0" 0) font "Helvetica, 20";
+set ytics 3 font "Helvetica, 24";
+set xtic rotate by 0 nomirror font "Helvetica, 24";
+set xlabel "r/a_i" font "Helvetica, 24";
+# +15/-15, 300mM
+plot\
+'../analytical_model/DH+10+10_44_5_potential_ene.dat' u ($1/ai):2 w l ls 1 title '+10 +10, ana',\
+'../10+10_44_5/ene.dat' u ($1/ai):2 w p ls 2 title '+10 +10 4-4, sdamm',\
+'../analytical_model/DH+10-10_44_5_potential_ene.dat' u ($1/ai):2 w l ls 3 title '+10 -10, ana',\
+'../10-10_44_5/ene.dat' u ($1/ai):2 w p ls 4 title '+10 -10 4-4, sdamm';
+
+unset multiplot;
+unset origin;
+unset size;
+unset label;
+
+
+
+

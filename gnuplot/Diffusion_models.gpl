@@ -1,0 +1,103 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+#set terminal pngcairo enhanced size 1000, 800
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 11:  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 2 lt 2 lw 5.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 3 lw 5.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 4 lw 5.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 5 lw 5.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FFFF00" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+set style line 11 lt 1 lw 5.5 pt 4 ps 3.0 lc rgb "#000000" # black
+set style line 12 lt 2 lw 5.5 pt 7 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 13 lt 2 lw 5.5 pt 5 ps 3.0 lc rgb "#008800" # ligh green
+
+# different colors same line type
+set style line 14 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#4e0000" # very dark red
+set style line 15 lt 1 lw 5.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 16 lt 1 lw 5.5 pt 3 ps 3.0 lc rgb "#0cb100" # not so dark  green
+set style line 17 lt 1 lw 5.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 18 lt 1 lw 5.5 pt 5 ps 3.0 lc rgb "#0aaea8" # not so dark blue
+set style line 19 lt 1 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 20 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#f3ff6e" # light yellow
+
+# Predefined B/W
+set style line 21 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#000000" # black
+set style line 22 lt 1 lw 5.5 pt 2 ps 3.0 lc rgb "#000000" # black
+set style line 23 lt 1 lw 5.5 pt 3 ps 3.0 lc rgb "#000000" # black
+set style line 24 lt 1 lw 5.5 pt 4 ps 3.0 lc rgb "#000000" # black
+set encoding iso_8859_1
+
+unset grid;
+
+#igG radius of gyration [A]
+igG_a=53.47
+#igG rot diff [rad/ps]
+igG_rot=8.093e-7
+#BSA radius of gyration [A]
+BSA_a=34.8
+#BSA rot diff [rad/ps]
+BSA_rot=4.421e-6
+#igG trans diff [A2/ns]
+igG_dt=3.974
+
+#  Han and Herzfeld model
+han(x)=exp(-2.0/3.0 * ( 3.0*(x/(1.0-x)) + 9.0/2.0 * (x**2.0/(1.0-x)**2) +  9.0/4.0 * (x**3.0/(1.0-x)**3) ) );
+#  Smoluchowsky
+smolu(x)=1.0-2.0*x;
+# Tokuyama
+bf(x)=sqrt(9.0*x/8.0);
+cf(x)=11.0*x/16.0;
+hvp(x)=2.0*(bf(x)*bf(x))/(1.0-bf(x))-cf(x)/(1.0+2.0*cf(x))-bf(x)*cf(x)*(2.0+cf(x))/((1.0+cf(x))*(1.0-bf(x)+cf(x)));
+toku_s(x)=1.0/(1.0+hvp(x));
+toku(x)=toku_s(x)/(1.0+2.0*toku_s(x)*(x/0.57185)*(1.0-(x/0.57185))**(-2));
+
+set size 1.0,1.0
+set origin 0.0,0.0
+set bmargin 5
+set lmargin 12
+set rmargin 4
+set tmargin 5
+set border lw 2
+
+set output 'ps/Diffusion_models.ps';
+set multiplot;
+unset title;
+
+set xtics nomirror
+set ytics nomirror
+set xlabel "{/Symbol f}" font "Helvetica Bold,30" offset 0,-1;
+set ylabel "D^{t}_{L}/D^{t}_{0}" font "Helvetica Bold, 30" offset -2,+0;
+set xtics auto font "Helvetica Bold,30";
+set ytics auto font "Helvetica Bold,30";
+set xrange [0.0:0.6];
+set yrange [0.01:1.1];
+set key top right spacing 1.5 font "Helvetica Bold,30"
+plot han(x) w l ls 12 title 'Han\&Herzfeld',\
+smolu(x) w l ls 14 title 'Somolu',\
+toku(x) w l ls 10 title 'Tokuyama';
+
+

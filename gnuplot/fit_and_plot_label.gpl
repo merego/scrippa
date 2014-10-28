@@ -1,0 +1,201 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal pngcairo enhanced size 1000, 800
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 1($1/s):  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 2 lt 2 lw 5.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 3 lw 5.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 4 lw 5.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 5 lw 5.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FF9900" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FFFF00" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+set style line 11 lt 1 lw 2.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 12 lt 2 lw 2.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 13 lt 3 lw 2.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 14 lt 4 lw 2.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 15 lt 5 lw 2.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 16 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 17 lt 1 lw 2.5 pt 7 ps 3.0 lc rgb "#FF9900" # light yellow
+set style line 18 lt 1 lw 2.5 pt 8 ps 3.0 lc rgb "#FFFF00" # orange 
+set style line 19 lt 1 lw 2.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 20 lt 1 lw 2.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+
+# Predefined B/W
+set style line 21 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#000000" #black, large continuos, point : filled circle
+set style line 22 lt 8 lw 5.5 pt 7 ps 3.0 lc rgb "#880000" #dark red, large dashed , point : filled circle
+
+set style line 23 lt 1 lw 1.0 pt 1 ps 3.0 lc rgb "#880000" # black
+set style line 24 lt 1 lw 5.0 pt 5 ps 3.0 lc rgb "#880000" # dark red
+set style line 25 lt 2 lw 5.5 pt 4 ps 3.0 lc rgb "#008800" # dark green
+set style line 26 lt 3 lw 5.5 pt 8 ps 3.0 lc rgb "#000088" # dark blue
+set style line 27 lt 4 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange
+set style line 28 lt 5 lw 5.5 pt 8 ps 3.0 lc rgb "#888800" # yellow
+
+set encoding iso_8859_1
+
+unset grid;
+
+# Characteristc times
+s=1.0 # tau_b (relaxation time)
+
+printvalue(n)=sprintf("{/Symbol a} = %4.2f",n)
+
+
+###################################################################################################
+## Plot timeensavg_msd 
+## 6 CI2 HD -0.018
+f1(x)=a+(b-1)*x
+f2(x)=c+(d-1)*x
+f3(x)=e+(f-1)*x
+f4a(x)=g+(h-1)*x
+f4b(x)=i+(l-1)*x
+fit [1:6] f1(x) "../10gL/IGG_10gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-1-2/msd_timeensavg.dat" using (log($1)):(log($2/$1)) via a,b;
+fit [1:6] f2(x) "../100gL/IGG_100gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-10/msd_timeensavg.dat"  using (log($1)):(log($2/$1)) via c,d;
+fit [1:6] f3(x) "../200gL/IGG_200gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_1-19/msd_timeensavg.dat"  using (log($1)):(log($2/$1)) via e,f;
+fit [1:3] f4a(x) "../300gL/IGG_300gL_EP_ED_HD-0.012_LJ1.5_noHI_noDH/combine_0-27/msd_timeensavg.dat"  using (log($1)):(log($2/$1)) via g,h;
+fit [4:6] f4b(x) "../300gL/IGG_300gL_EP_ED_HD-0.012_LJ1.5_noHI_noDH/combine_0-27/msd_timeensavg.dat" using (log($1)):(log($2/$1)) via i,l;
+
+
+set label printvalue(b) at 4.0,3.5 font "Helvetica Bold,24";
+set label printvalue(d) at 4.0,2.7 font "Helvetica Bold,24";
+set label printvalue(f) at 4.0,1.7 font "Helvetica Bold,24";
+set label printvalue(h) at 0.6,1.1 font "Helvetica Bold,24";
+set label printvalue(l) at 5.5,0.1 font "Helvetica Bold,24";
+
+set output 'png/timeensavg_msd_igG.png';
+set ytics nomirror;
+
+# MAIN PLOT
+set origin 0,0
+set size 1.0,1.0
+unset title;
+set title "<r^2>/t over t" font "Helvetica Bold,24";
+#set xlabel "time/tau_{B}" font "Helvetica,24" offset +0,-1;
+set xlabel "log(t)" font "Helvetica,24" offset +0,-1;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "log(<r^2>/t)" font "Helvetica,24" offset -5,0;
+set key bottom left spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+set ytics auto font "Helvetica Bold,24";
+set format y "%6.0e"
+set xtics auto font "Helvetica Bold,24";
+set xrange [0:8.0];
+set yrange [-2:4];
+set style fill solid 1.00 noborder
+set style fill transparent solid 0.30 noborder;
+#set style fill transparent pattern 4 border;
+plot '../10gL/IGG_10gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-1-2/msd_timeensavg.dat' u (log($1)):(log($2/$1)) ls 1 w l title '10 g/L',\
+ '../100gL/IGG_100gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-10/msd_timeensavg.dat' u (log($1)):(log($2/$1)) ls 3 w l title '100 g/L',\
+ '../200gL/IGG_200gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_1-19/msd_timeensavg.dat' u (log($1)):(log($2/$1)) ls 5 w l title '200 g/L',\
+ '../300gL/IGG_300gL_EP_ED_HD-0.012_LJ1.5_noHI_noDH/combine_0-27/msd_timeensavg.dat'  u (log($1)):(log($2/$1)) ls 7 w l title '300 g/L',\
+f1(x) w l ls 23 title "#a #b",\
+f2(x) w l ls 23 notitle,\
+f3(x) w l ls 23 notitle,\
+f4a(x) w l ls 23 notitle,\
+f4b(x) w l ls 23 notitle;
+#'' u ($1/s):($2+$3):($2-$3) w filledcurves ls 2  title '',\
+#'' u ($1/s):($2+$3):($2-$3) w filledcurves ls 4  title '',\
+#'' u ($1/s):($2+$3):($2-$3) w filledcurves ls 6  title '',\
+#'' u ($1/s):($2+$3):($2-$3) w filledcurves ls 8  title '';
+
+
+
+set size 1.0,1.0
+unset log xy;
+unset log y2;
+
+
+
+###################################################################################################
+## Plot Dt(t) and alpha based on timeensavg_msd
+
+# Function definition for plotting anomality exponent
+old_x=0.0
+old_y=0.0
+alpha(x,y) = (dlnx=log(x)-log(old_x),dlny=log(y/x)-log(old_y/old_x),old_x=x,old_y=y,dlny/dlnx)
+
+
+#iGG
+set output 'png/Dtt_alpha_igG.png';
+set multiplot           # This will followed by two plots
+set ytics nomirror;
+
+# MAIN PLOT
+set origin 0,0
+unset log xy;
+unset log y2;
+unset title;
+unset y2tics;
+set title "Time-dep. diffusion coefficient - igG" font "Helvetica Bold,24";
+#set xlabel "time/tau_{B}" font "Helvetica,24" offset +0,-1;
+set xlabel "time (ns)" font "Helvetica,24" offset +0,-1;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "Dt(t) ({\305}^2/ns)" font "Helvetica,24" offset -5,0;
+set key bottom right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+set ytics auto font "Helvetica Bold,24";
+set format y "%5.1f"
+set xtics auto font "Helvetica Bold,24";
+set xrange [1/s:1000.0/s]; # starting from 100.0 because at the beginning the variance (which is constant between about 0-800ns) is >> than the msd
+set yrange [0.0:8.0];
+#set yrange [8:15];
+set style fill solid 1.00 noborder
+set style fill transparent solid 0.30 noborder;
+#set style fill transparent pattern 4 border;
+plot '../10gL/IGG_10gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-1-2/msd_timeensavg.dat' u ($1/s):($2/($1*6)) ls 1 w l title '10 g/L',\
+     '../100gL/IGG_100gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-10/msd_timeensavg.dat' u ($1/s):($2/($1*6)) ls 3 w l title '100 g/L',\
+     '../200gL/IGG_200gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_1-19/msd_timeensavg.dat' u ($1/s):($2/($1*6)) ls 5 w l title '200 g/L',\
+     '../300gL/IGG_300gL_EP_ED_HD-0.012_LJ1.5_noHI_noDH/combine_0-27/msd_timeensavg.dat' u ($1/s):($2/($1*6)) ls 7 w l title '300 g/L';
+
+# INSET
+set origin 0.2,0.55;
+set title "Anomality exponent";
+set size 0.7,0.4;
+unset xlabel;
+set xrange [1/s:1000.0/s];
+set xtics 10 font "Helvetica Bold,20";
+unset ytics;
+unset ylabel;
+set yrange [0.4:1.5];
+set y2range [0.4:1.5];
+set format y2 "%5.1f"
+set y2tics 0.2 font "Helvetica Bold,20";
+unset key;
+set log x;
+unset log y;
+plot '../10gL/IGG_10gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-1-2/msd_timeensavg.dat'   u ($1/s):(1-alpha($1,$2)) ls 11 w l notitle,\
+     '../100gL/IGG_100gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_0-10/msd_timeensavg.dat'   u ($1/s):(1-alpha($1,$2)) ls 13 w l notitle,\
+     '../200gL/IGG_200gL_EP_ED_HD-0.012_LJ1.5_HI_DH/combine_1-19/msd_timeensavg.dat'  u ($1/s):(1-alpha($1,$2)) ls 15 w l notitle,\
+     '../300gL/IGG_300gL_EP_ED_HD-0.012_LJ1.5_noHI_noDH/combine_0-27/msd_timeensavg.dat'   u ($1/s):(1-alpha($1,$2)) ls 17 w l notitle;
+
+
+unset multiplot
+set size 1.0,1.0
+
+
+
+
+

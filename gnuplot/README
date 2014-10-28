@@ -1,0 +1,64 @@
+# Gnuplot scritps ##
+# Examples #
+# How to plot surfaces generated using matlab/octave 
+# See also plot_proj_and_centroids.m script for how to generate data
+# This script also add labels reading from a file 
+# See also for contour plot colored by specific palette!
+# See also for plot time series by row index (color lines or points by row index)
+  plot_proj_and_centroids.gpl
+
+# How to plot transparent filled curves : 
+  plot_msd_filled.gpl
+
+# How to do online derivatives of dataponints : 
+  plot_msd_filled.gpl
+
+# Multiplot examples
+  plot_msd_alpha_using_octave_fit_inonefigure.gpl # this is the one with better flexible plots
+  plot_ene_and_pot.gpl # this is the one with flexible plots
+  plot_msd.gpl
+  plot_B22.gpl
+  plot_Sq_and_rdfs.gpl
+
+# Plot histograms
+  plot_contact.gpl
+  # skip some xtic label when plot dense histograms
+  plot_contact_b_factors.gpl
+
+# Plot regression lines (precomputed equation)
+  plot_Dt.gpl
+
+# Key Legend to specific position
+  plot_Sq_and_rdfs.gpl
+
+
+# For symbols see ps_guide.ps in this directory
+  For angstrom symbol or any other iso symbols 
+  put "set encoding iso_8859_1" at the beginning
+  then use {/Helvetica \305} for angstrom or {/Helvetica=24 \305} 
+  Without specifying /Helvetica the symbol is only printed in png terminal 
+  and not in ps
+
+# For converting imagees see
+  conver_images.sh
+
+
+# Fitting and how to plot only part of a function
+  plot_all.gpl
+
+# How to plot defined or computed variable as string on the graph
+  fit_and_plot_label.gpl
+
+# Errorbars histogram
+  set style histogram errorbars gap 1 lw 5.0 ### !!! lw is the size of the errobar line with
+  set bars 3 ## ! size of the bar on top of the error bars
+  ...
+  plot 'hemoglobin_oligomers_4Acutoff.dat'  u 6:5  ls 14 t "HbA 0.04";
+
+
+# Diffusion models
+ Diffusion_models.gpl
+
+# Plot max of a distribution
+# Find max on y and correspondig x 
+plot_max_of_a_distribution.gpl

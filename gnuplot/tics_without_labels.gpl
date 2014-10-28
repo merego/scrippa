@@ -1,0 +1,3 @@
+#In the same way we can place tics without any label by applying:
+
+set format x ''

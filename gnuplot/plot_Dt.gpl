@@ -1,0 +1,180 @@
+#!/home/mereghpo/my_bin/gnuplot-4.2
+reset;
+set terminal postscript landscape enhanced color 15;
+set size 1,1;
+
+# styles
+#      line       point  
+# -------------------------
+# 1 :  cont.       +
+# 2 :  ----        x
+# 3 :  dashed2     * 
+# 4 :  pointed     empty square
+# 5 :  dash-point  filled square
+# 6 :  dash-point  empty circle
+# 7 :  -- -- --    filled circle
+# 8 :  -..-..--    empty triangle up
+# 9 :  dashed3     filled triangle up
+# 10:  cont.       empty triangle down
+# 11:  ----        filled triangle down
+
+# Predefined colored line/point styles
+set style line 1 lt 1 lw 5.5 pt 1 ps 3.0 lc rgb "#880000" # dark red
+set style line 2 lt 2 lw 5.5 pt 2 ps 3.0 lc rgb "#FF0000" # ligh red
+set style line 3 lt 3 lw 5.5 pt 3 ps 3.0 lc rgb "#008800" # dark green
+set style line 4 lt 4 lw 5.5 pt 4 ps 3.0 lc rgb "#00FF00" # light green
+set style line 5 lt 5 lw 5.5 pt 5 ps 3.0 lc rgb "#000088" # dark blue
+set style line 6 lt 6 lw 5.5 pt 6 ps 3.0 lc rgb "#0000FF" # light blue
+set style line 7 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#FFFF00" # light yellow
+set style line 8 lt 1 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange 
+set style line 9 lt 1 lw 5.5 pt 9 ps 3.0 lc rgb "#FF00FF" # pink
+set style line 10 lt 1 lw 5.5 pt 10 ps 0.5 lc rgb "#FF9900" # orange 
+# Predefined B/W
+set style line 21 lt 1 lw 5.5 pt 7 ps 3.0 lc rgb "#000000" #black, large continuos, point : filled circle
+set style line 22 lt 8 lw 5.5 pt 7 ps 3.0 lc rgb "#880000" #dark red, large dashed , point : filled circle
+
+set style line 23 lt 1 lw 4.5 pt 7 ps 3.0 lc rgb "#000000" # black
+set style line 24 lt 1 lw 5.0 pt 5 ps 3.0 lc rgb "#880000" # dark red
+set style line 25 lt 2 lw 5.5 pt 4 ps 3.0 lc rgb "#008800" # dark green
+set style line 26 lt 3 lw 5.5 pt 8 ps 3.0 lc rgb "#000088" # dark blue
+set style line 27 lt 4 lw 5.5 pt 8 ps 3.0 lc rgb "#FF9900" # orange
+set style line 28 lt 5 lw 5.5 pt 2 ps 3.0 lc rgb "#888800" # yellow
+
+set encoding iso_8859_1 
+
+unset grid;
+
+
+# ---BPTI dtrans ---
+c(x)=-0.070*x+14.06
+e(x)=-0.084*x+14.35
+unset title;
+set xlabel "BPTI concentration (g/L)" font "Helvetica,24" offset +0,-2;
+#set x2label "{/Symbol F (%)}" font "Arial Bold,24";
+set ylabel "D_{trans} ({\305}^2/ns)" font "Helvetica,24" offset -2,+0;
+set xtics auto font "Helvetica Bold,24";
+set ytics auto font "Helvetica Bold,24";
+#set x2tics ("0.79" 10, "1.58" 20, "2.37" 30, "3.16" 40, "3.95" 50, "4.72" 60) font "Helvetica Bold,24";
+set xrange [0:65];
+set yrange [8:15];
+set xtic rotate by 0;
+set key bottom left spacing 1.5 font "Helvetica Bold,24"
+unset key;
+set bars 3.0;
+set output 'Dt_bpti.ps';
+plot e(x) with lines ls 21 title "ereg",\
+c(x) with lines ls 22 title "creg",\
+'Dt_bpti_expthe.dat' u 1:2:3 ls 23 w yerrorbars title 'E.',\
+'Dt_bpti_comp.dat' u 1:2:3 ls 24 w yerrorbars title 'C.',\
+'Dt_bpti_expthe.dat' u 1:4 ls 25 w l title 'Han',\
+'Dt_bpti_expthe.dat' u 1:5 ls 26 w l title 'Tok';
+#'Dt_bpti_expthe.dat' u 1:6 ls 27 w l title 'Han+Iso',\
+#'Dt_bpti_expthe.dat' u 1:7 ls 28 w l title 'Tok+Iso';
+
+# ---BPTI dtrans with HI ---
+c(x)=-0.076*x+14.49
+e(x)=-0.070*x+14.00
+unset title;
+set xlabel "BPTI concentration (g/L)" font "Helvetica,24" offset +0,-2;
+#set x2label "{/Symbol F (%)}" font "Arial Bold,24";
+set ylabel "D_{trans} ({\305}^2/ns)" font "Helvetica,24" offset -2,+0;
+set xtics auto font "Helvetica Bold,24";
+set ytics auto font "Helvetica Bold,24";
+#set x2tics ("0.79" 10, "1.58" 20, "2.37" 30, "3.16" 40, "3.95" 50, "4.72" 60) font "Helvetica Bold,24";
+set xrange [0:65];
+set yrange [8:15];
+set xtic rotate by 0;
+set key bottom left spacing 1.5 font "Helvetica Bold,24"
+unset key;
+set bars 3.0;
+set output 'Dt_bpti_hi.ps';
+plot e(x) with lines ls 21 title "ereg",\
+c(x) with lines ls 22 title "creg",\
+'Dt_bpti_expthe.dat' u 1:2:3 ls 23 w yerrorbars title 'E.',\
+'Dt_bpti_comp.dat' u 1:2:3 ls 24 w yerrorbars title 'C.',\
+'Dt_bpti_expthe.dat' u 1:4 ls 25 w l title 'Han',\
+'Dt_bpti_expthe.dat' u 1:5 ls 26 w l title 'Tok',\
+'Dt_bpti_comp_hi.dat' u 1:2:3 ls 27 w yerrorbars title 'C.HI';
+#'Dt_bpti_expthe.dat' u 1:6 ls 27 w l title 'Han+Iso',\
+#'Dt_bpti_expthe.dat' u 1:7 ls 28 w l title 'Tok+Iso';
+
+
+# --- hewl dtrans ---
+c(x)=-0.039*x+12.08
+e(x)=-0.035*x+12.13
+unset title;
+set xlabel "HEWL concentration (g/L)" font "Helvetica,24" offset +0,-2;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "D_{trans} ({\305}^2/ns)" font "Helvetica,24" offset -2,0;
+set key top right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,24";
+set ytics auto font "Helvetica Bold,24";
+set xtics auto font "Helvetica Bold,24";
+set xrange [0:65];
+set yrange [8:15];
+set xtic rotate by 0;
+set output 'Dt_hewl.ps';
+plot e(x) with lines ls 21 title "e. reg",\
+c(x) with lines ls 22 title "c. reg",\
+'Dt_hewl_expthe.dat' u 1:2 ls 23 w p title 'Exp.',\
+'Dt_hewl_comp.dat' u 1:2:3 ls 24 w yerrorbars title 'Com.',\
+'Dt_hewl_expthe.dat' u 1:4 ls 25 w l title 'Han',\
+'Dt_hewl_expthe.dat' u 1:5 ls 26 w l title 'Tok';
+
+# --- hewl dtrans with HI---
+c(x)=-0.039*x+12.08
+e(x)=-0.035*x+12.13
+unset title;
+set xlabel "HEWL concentration (g/L)" font "Helvetica,24" offset +0,-2;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "D_{trans} ({\305}^2/ns)" font "Helvetica,24" offset -2,0;
+set key top right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+#set x2tics ("1.12" 14, "2.22" 28, "3.37" 42, "4.49" 57) font "Helvetica Bold,24";
+set ytics auto font "Helvetica Bold,24";
+set xtics auto font "Helvetica Bold,24";
+set xrange [0:65];
+set yrange [8:15];
+set xtic rotate by 0;
+set output 'Dt_hewl_hi.ps';
+plot e(x) with lines ls 21 title "Exp. reg",\
+c(x) with lines ls 22 title "Sim. reg",\
+'Dt_hewl_expthe.dat' u 1:2 ls 23 w p title 'Exp.',\
+'Dt_hewl_comp.dat' u 1:2:3 ls 24 w yerrorbars title 'Sim.',\
+'Dt_hewl_expthe.dat' u 1:4 ls 25 w l title 'Han',\
+'Dt_hewl_expthe.dat' u 1:5 ls 26 w l title 'Tok',\
+'Dt_hewl_comp_hi.dat' u 1:2:3 ls 27 w yerrorbars title 'Sim. (HI-Weinstein)',\
+'Dt_hewl_comp_hi.dat' u 1:4:5 ls 28 w yerrorbars title 'Sim. (HI-Geyer)';
+
+
+# --- hewl dtrans with HI---
+set tmargin 4;
+set bmargin 5;
+set xlabel "HEWL concentration (g/L)" font "Helvetica,24" offset +0,-1;
+#set x2label "{/Symbol F (%)}" font "Helvetica Bold,24";
+set ylabel "D_{trans} ({\305}^2/ns)" font "Helvetica,24" offset -2,0;
+set x2label "HEWL volume fraction" font "Helvetica,24" offset 0,0;
+set key top right spacing 1.5 font "Helvetica Bold,24"
+unset x2tics;
+unset xtics;
+#set xtics ("14" 14, "28" 28, "42" 42, "57" 57);
+set x2tics ("0.01" 14, "0.02" 28, "0.03" 42, "0.04" 57) font "Helvetica Bold,24"; # volume fraction
+set ytics auto font "Helvetica Bold,24";
+set xtics auto nomirror font "Helvetica Bold,24";
+set xrange [0:65];
+set yrange [8:15];
+set xtic rotate by 0;
+set output 'Dt_hewl_hi_noregression.ps';
+plot 'Dt_hewl_expthe.dat' u 1:2 ls 23 w p title 'Exp.',\
+'Dt_hewl_comp.dat' u 1:2:3 ls 24 w yerrorbars title 'BD - without HI',\
+'Dt_hewl_expthe.dat' u 1:5 ls 26 w l title 'Tokuyama',\
+'Dt_hewl_comp_hi.dat' u 1:2:3 ls 27 w yerrorbars title 'BD - HI Mean field',\
+'Dt_hewl_comp_hi.dat' u 1:4:5 ls 28 w yerrorbars title 'BD - HI Geyer';
+
+
+
