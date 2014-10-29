@@ -26,9 +26,11 @@ IBI <- FALSE
 MC <- TRUE
 Alpha<-TRUE 
 
-if ((MC&IBI)) {
-  cat ("choose MC, IBI or OnlyIBI !\n") 
-  exit()
+MCIBI<-FALSE
+if (MC&IBI) {
+  MCIBI<-TRUE
+  MC<-FALSE
+  IBI<-TRUE
 }
 
 if (Alpha) {
@@ -60,11 +62,16 @@ for (ipot in 1:NumberOfPotentials) {
   }
 }
 distribs.spl<-list()
+AllLossFrame <- as.data.frame(matrix(NA, n_of_runs, length(ipotindex)))
+ipotOpti <- 0
+ipotNparams <- vector()
 for (ipot in 1:NumberOfPotentials) {
   distribs.spl <- list()
-  losses <- vector()
+  losses <- vector()    
   acceptedIterations <- vector()
   if (bOptimize[ipot] == "true") {
+    ipotOpti <- ipotOpti + 1
+    params <- vector()
     for (run in 1:n_of_runs) {
       doc <- xmlInternalTreeParse(SortedFiles[run]);
       src <- xpathApply(doc, "//input/param")
@@ -90,20 +97,34 @@ for (ipot in 1:NumberOfPotentials) {
           loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
           losses <- append(losses,loss)   
           acceptedIterations <- append(acceptedIterations,run)          
-        }      
+        }
+      # only for MC, these will be used to get the best parameters
+      if (MC) {
+        AllLossFrame[run,ipot] <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
+        paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter_try",xmlValue))
+        params <- append(params,paramipot)        
+      }
     } # iterations loop
     DistAndLosses <- list(dists=distribs.spl,losses=losses,acceptedIterations=acceptedIterations)
     DistribALLSpl <- lappend(DistribALLSpl,DistAndLosses)
+    Nparams <- length(params)/(n_of_runs-1) 
+    ipotNparams[ipotOpti] <- Nparams
+    MatrixParams <- matrix(params,(n_of_runs-1),byrow=TRUE)
+    if (ipotOpti==1) 
+      MatrixAllParams <- MatrixParams
+    else
+      MatrixAllParams <- cbind(MatrixAllParams,MatrixParams)
   } # bOptimize if
 } # potentials loop
 
 
 # Figures about distributions
-colfunc = colorRampPalette(c("white","black"))
+colfunc = colorRampPalette(c("black","white"))
 for (ipot in 1:length(DistribALLSpl)) {
   #par(fig=c(0.0,1.0,0.0,1.0),mar=c(8,8,1,2),mgp=c(1.0,1.4,0.0),oma=c(0.1,0.1,0.1,0.1),new=FALSE)
   NaccIter <- length(DistribALLSpl[[ipot]]$losses)
   loss <- DistribALLSpl[[ipot]]$losses
+  SortLoss <- sort(loss,index.return=TRUE)
   colors <- colfunc(NaccIter)
   ranges <- c()
   if (ipot==1) {
@@ -127,8 +148,8 @@ for (ipot in 1:length(DistribALLSpl)) {
   postscript(filename,height = 5, width=10)
   par(mar=c(7,5,1,1),mgp=c(5,2,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
   refDistrib <- refDistribs[[ipot]]
-  if (IBI) {
-    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,1), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE) # OnlyIBI
+  if (MCIBI) {
+    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,1), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE) # MCSA-IBI
     axis(side = 1, tick = TRUE, font=2, cex.axis=2.5, cex.lab=2.2) 
     axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=2.5, cex.lab=2.2)  
   } else {
@@ -139,9 +160,13 @@ for (ipot in 1:length(DistribALLSpl)) {
   for (i in 1:length(DistribALLSpl[[ipot]]$dists)) {
     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
     lineWidth <- lineWidth - 3.0/NaccIter
-    lines(distrib$x,distrib$y,col=colors[i],lwd=lineWidth)
+    lines(distrib$x,distrib$y,col=colors[SortLoss$ix[i]],lwd=lineWidth)
   } # End iteration loop for distributions
+  # Plot in red the reference one
   lines(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0)
+  # Plot in green the last one
+  #if (IBI)  
+  #  lines(distrib$x,distrib$y,type="l",lty=2,col="green",lwd=5.0)
   
   dev.off()
 }
@@ -176,7 +201,8 @@ if (!MC) {
     names<-c("","","","")
   }
   colnames(mt.scaled) <- names     
-  Spearman <- cor(mt.scaled,method="spearman")     
+  Spearman <- cor(mt.scaled[,],method="spearman")    
+  #Spearman <- abs(Spearman)
   #Spearman[lower.tri(Spearman,diag=T)] = 0.0 # set 0 diagonal and lower tri matrix
   pmat <- matrix(0,dim(Spearman)[1],dim(Spearman)[2])
   # Add p-values to the lower triangular part of Pearson matrix
@@ -232,12 +258,12 @@ if (MC) {
   maxy <- maxy + 4.0
   plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='', xlim=c(minx,maxx), ylim=c(miny,maxy), cex.axis=3.0, cex.lab=3.0) # MC  
 }else{
-  plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+  plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+7.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
 }
 axis(side = 1, tick = TRUE, font=2, cex.axis=2.5, cex.lab=2.2) 
 axis(side = 2, tick = FALSE, at=seq(miny,maxy), font=2, cex.axis=2.5, cex.lab=2.2, labels=FALSE)  
 mtext("Iteration", side=1, line=4, cex=3.5)
-mtext("[a.u.]", side=2, line=1.0, cex=3.5)
+#mtext("[a.u.]", side=2, line=1.0, cex=3.5)
 # Add overalys
 for (ipot in 1:length(DistribALLSpl)) {
   
@@ -280,6 +306,65 @@ for (ipot in 1:length(DistribALLSpl)) {
 } # end ipot loop
 dev.off()
 
+
+# Best Parameters selection (For montecarlo only)
+if (MC) {
+  # Best params based on SqSum and Var
+  Vm <- vector()
+  SqSum <- vector()
+  VarM <- vector()
+  VarScaled <- vector()
+  for (run in 1:nrow(AllLossFrame)) {
+    SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
+    #if (length(OptimPotIndex)>1) 
+      VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
+    #else
+    #  VarScaled[run] <- 0.0
+  }
+  SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
+  #if (length(OptimPotIndex)>1) 
+    VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
+  Vm <- SqScaled + VarScaled
+  
+  # Sort 
+  #avgSort <- sort(AvgLoss,index.return=TRUE) 
+  avgSort <- sort(Vm,index.return=TRUE) 
+  SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(10,length(avgSort$ix))],])
+  #s[,10] <- (s[,10]+3.14)*180/3.14
+  #s[,8] <- s[,8]*180/3.14
+  all_mean <- sapply(SortedParametersFrame,median)
+  all_quantiles <- sapply(SortedParametersFrame,quantile)
+  
+  SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
+  SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
+  SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
+  rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
+  rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
+  rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
+  # Save out latex table
+  caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
+  tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
+  filename <- "BestBasedOnAvgLoss_MCSA.tex"
+  print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
+
+  Nstart <- 1
+  for (i in 1:ipotOpti) { 
+    Nparams <- ipotNparams[i]
+    for (j in 1:Nparams) {
+      val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
+      cat("<parameter>",val,"</parameter>\n")
+    }
+    for (j in 1:Nparams) {
+      val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
+      cat("<parameter_min>",val,"</parameter_min>\n")
+    }
+    for (j in 1:Nparams) {
+      val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
+      cat("<parameter_max>",val,"</parameter_max>\n")
+    }
+    Nstart <- Nstart + Nparams
+  }
+}
 # AcceptedIterations<-vector()
 # # Load distributions and loss functions
 # for (run in 1:n_of_runs) {
