@@ -22,8 +22,8 @@ n_of_runs <- length(files)
 # Load Reference distributions
 
 # SET SYSTEM PARAMs
-IBI <- TRUE
-MC <- FALSE
+IBI <- FALSE
+MC <- TRUE
 Alpha<-TRUE 
 
 MCIBI<-FALSE
@@ -81,23 +81,26 @@ for (ipot in 1:NumberOfPotentials) {
       #ii <- 0  
       # Print out only if optimized potentials
       #if(bOptimize=="true") {
-        if (MC) {
+       if (MC) {
           status <- xpathApply(TmpDoc,"//Accepted",xmlValue)[[1]] 
-        }  else {
-          status <- "true"
-        }
-       # And only accepted distributions (always true if IBI is used)
+       }  else {
+         status <- "true"
+       }
+       # Read Distribution
+       filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat',sep="")
+       distrib <- as.data.frame(read.table(filename))
+       # And compute median 
+       forMedian <- which(cumsum(distrib[,2]/sum(distrib[,2]))<0.5)
+       Median <- distrib[c(length(forMedian)),1]
+       Medians <- append(Medians,Median)
+
+       # And for only accepted distributions (always true if IBI is used)
         if (status=="true") {
-          filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat',sep="")
-          distrib <- as.data.frame(read.table(filename))
-          if (ipot>degpot)
+            if (ipot>degpot)
             distrib[,1] <- distrib[,1]/pi*180.0          
           
           distrib.spl <- spline(distrib[,1],distrib[,2]/max(distrib[,2]),n=2*length(distrib[,1]))
           distribs.spl <- lappend(distribs.spl,distrib.spl)
-          forMedian <- which(cumsum(distrib[,2]/sum(distrib[,2]))<0.5)
-          Median <- distrib[c(length(forMedian)),1]
-          Medians <- append(Medians,Median)
           #lineWidth <- 5.0        
           loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
           losses <- append(losses,loss)   
