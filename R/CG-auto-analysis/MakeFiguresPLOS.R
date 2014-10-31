@@ -418,9 +418,9 @@ filename <- paste("FigForPaper/RMSLossFunction.eps")
 postscript(filename, height=5, width=10)
 par(mar=c(4,4,1,1),mgp=c(5,2,0),oma=c(1.0,1.0,1.0,1.0),new=FALSE)
 DMT <- as.data.frame(diff(mt))
+colnames(DMT) <- c("r13","r14","r15","Angle","Dihedral")
 boxplot(DMT)
-#axis(side = 1, tick = TRUE, labels=FALSE)
-#axis(side = 2, font=2, cex.axis=1.5, cex.lab=2.2, labels=TRUE)
+save(DMT,file="RMSLoss.RData")
 dev.off()
 
 
