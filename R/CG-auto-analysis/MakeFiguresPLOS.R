@@ -22,8 +22,8 @@ n_of_runs <- length(files)
 # Load Reference distributions
 
 # SET SYSTEM PARAMs
-IBI <- FALSE
-MC <- TRUE
+IBI <- TRUE
+MC <- FALSE
 Alpha<-TRUE 
 
 MCIBI<-FALSE
@@ -40,7 +40,7 @@ if (Alpha) {
 }
 
 
-# Load distributions and losses
+#  1.  Load distributions and losses
 doc0 <- xmlInternalTreeParse(SortedFiles[1]);
 src0 <- xpathApply(doc0, "//input/param")
 NumberOfPotentials <- xmlSize(src0)
@@ -68,6 +68,7 @@ ipotNparams <- vector()
 for (ipot in 1:NumberOfPotentials) {
   distribs.spl <- list()
   losses <- vector()    
+  Medians <- vector()    
   acceptedIterations <- vector()
   if (bOptimize[ipot] == "true") {
     ipotOpti <- ipotOpti + 1
@@ -91,8 +92,12 @@ for (ipot in 1:NumberOfPotentials) {
           distrib <- as.data.frame(read.table(filename))
           if (ipot>degpot)
             distrib[,1] <- distrib[,1]/pi*180.0          
+          
           distrib.spl <- spline(distrib[,1],distrib[,2]/max(distrib[,2]),n=2*length(distrib[,1]))
           distribs.spl <- lappend(distribs.spl,distrib.spl)
+          forMedian <- which(cumsum(distrib[,2]/sum(distrib[,2]))<0.5)
+          Median <- distrib[c(length(forMedian)),1]
+          Medians <- append(Medians,Median)
           #lineWidth <- 5.0        
           loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
           losses <- append(losses,loss)   
@@ -105,7 +110,7 @@ for (ipot in 1:NumberOfPotentials) {
         params <- append(params,paramipot)        
       }
     } # iterations loop
-    DistAndLosses <- list(dists=distribs.spl,losses=losses,acceptedIterations=acceptedIterations)
+    DistAndLosses <- list(dists=distribs.spl,losses=losses,Medians=Medians,acceptedIterations=acceptedIterations)
     DistribALLSpl <- lappend(DistribALLSpl,DistAndLosses)
     Nparams <- length(params)/(n_of_runs-1) 
     ipotNparams[ipotOpti] <- Nparams
@@ -118,7 +123,7 @@ for (ipot in 1:NumberOfPotentials) {
 } # potentials loop
 
 
-# Figures about distributions
+#  2. Figures about distributions
 colfunc = colorRampPalette(c("black","white"))
 for (ipot in 1:length(DistribALLSpl)) {
   #par(fig=c(0.0,1.0,0.0,1.0),mar=c(8,8,1,2),mgp=c(1.0,1.4,0.0),oma=c(0.1,0.1,0.1,0.1),new=FALSE)
@@ -171,8 +176,9 @@ for (ipot in 1:length(DistribALLSpl)) {
   dev.off()
 }
 
-# Figures about correlations (Lossfunction correlations)
-# Only for IBI and OnlyIBI 
+# 3. Figures about Losses correlations (Lossfunction correlations) 
+#    It also generate the matrix mt.scaled to plot the scaled loss function (section 5. Figures about Loss function )
+#    Only for IBI and OnlyIBI 
 if (!MC) {
   m<-matrix(0,length(DistribALLSpl),length(DistribALLSpl[[1]]$losses))
   for (ipot in 1:length(DistribALLSpl)) 
@@ -228,9 +234,45 @@ if (!MC) {
   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
 }
 
+# 4. Figures about correlations (Distribution correlations)
+#    Only for IBI and OnlyIBI 
+#if (!MC) {
+  mtp<-matrix(0,length(DistribALLSpl),length(DistribALLSpl[[1]]$Medians))
+  for (ipot in 1:length(DistribALLSpl)) 
+    mtp[ipot,]<- DistribALLSpl[[ipot]]$Medians
+  
+  mtp <- t(mtp)
+
+  if (ipot==5) {
+    names<-c("","","","","")
+  } else  {
+    names<-c("","","","")
+  }
+  colnames(mtp) <- names     
+  Spearman <- cor(mtp[,],method="spearman")    
+  pmat <- matrix(0,dim(Spearman)[1],dim(Spearman)[2])
+  # Add p-values to the lower triangular part of Pearson matrix
+  for (i in 1:dim(mtp)[2]) for (j in i:dim(mtp)[2]) {
+    pvalue <- cor.test(mtp[,i],mtp[,j],alternative="two.side",method="spearman")$p.val
+    pmat[i, j] <- pmat[j, i] <- pvalue
+    #if (pvalue<0.01) {  Spearman[j,i] <- 0.01 }
+  }
+  filename <- "FigForPaper/DistributionCorrelation.eps"
+  postscript(filename) 
+  pmm <- pmat
+  pmm[pmat>0.01] <- 0.0
+  pmm[pmat<=0.01] <- 1.0
+  corrplot(Spearman,p.mat=pmm,sig.level =0.01,method="color",type="lower",diag=F,cl.cex=1.4,pch="*")
+  dev.off()  
+  caption <- paste("Correlations among distributions",sep="")
+  tab <- xtable((Spearman[,]), caption=caption)
+  filename <- "FigForPaper/DistributionCorrelation.tex"
+  print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
+#}
 
 
-# Figures about Loss function
+
+# 5. Figures about Loss function
 filename <- paste("FigForPaper/LossFunction.eps")
 postscript(filename, height=5, width=10)
 par(mar=c(7,8,2,1),mgp=c(4,1.5,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
@@ -307,7 +349,7 @@ for (ipot in 1:length(DistribALLSpl)) {
 dev.off()
 
 
-# Best Parameters selection (For montecarlo only)
+# 6.  Best Parameters selection (For montecarlo only)
 if (MC) {
   # Best params based on SqSum and Var
   Vm <- vector()
