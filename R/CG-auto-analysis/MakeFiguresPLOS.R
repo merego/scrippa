@@ -23,11 +23,11 @@ n_of_runs <- length(files)
 
 # SET SYSTEM PARAMs
 IBI <- TRUE
-MC <- FALSE
-Alpha<-TRUE 
+MC <- TRUE
+Alpha <- FALSE
 
 MCIBI<-FALSE
-if (MC&IBI) {
+if (MC&&IBI) {
   MCIBI<-TRUE
   MC<-FALSE
   IBI<-TRUE
@@ -133,8 +133,13 @@ for (ipot in 1:length(DistribALLSpl)) {
   NaccIter <- length(DistribALLSpl[[ipot]]$losses)
   loss <- DistribALLSpl[[ipot]]$losses
   SortLoss <- sort(loss,index.return=TRUE)
+  #if (IBI) {
+  #  SortLoss$ix<-c(length(loss):1)
+  #}
   colors <- colfunc(NaccIter)
+  lineWidth<-seq(5.0,1.0,length.out = NaccIter )
   ranges <- c()
+  if (Alpha) {
   if (ipot==1) {
     ranges[1] <- 4.5
     ranges[2] <- 6.5
@@ -150,7 +155,22 @@ for (ipot in 1:length(DistribALLSpl)) {
   } else if (ipot==5)  {
     ranges[1] <- 20.0
     ranges[2] <- 85.0
-  }  
+  }  } else {
+    if (ipot==1) {
+      ranges[1] <- 4.5
+      ranges[2] <- 6.3
+    } else if (ipot==2)  {
+      ranges[1] <- 4.0
+      ranges[2] <- 6.5    
+    } else if (ipot==3)  {
+      ranges[1] <- 73.0
+      ranges[2] <- 101.0
+    } else if (ipot==4)  {
+      ranges[1] <- 40.0
+      ranges[2] <- 90.0
+    }
+  }
+  
   filename <- paste("FigForPaper/Param",ipotindex[ipot]-1,".eps",sep="")
   #tiff(filename, width = 1200, height = 1200, units = 'px', compression = c("none") )
   postscript(filename,height = 5, width=10)
@@ -164,11 +184,11 @@ for (ipot in 1:length(DistribALLSpl)) {
     plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,1), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE)
     axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=2.5, cex.lab=2.2)  
   }
-  lineWidth <- 5.0
+  #lineWidth <- 5.0
   for (i in 1:length(DistribALLSpl[[ipot]]$dists)) {
     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-    lineWidth <- lineWidth - 3.0/NaccIter
-    lines(distrib$x,distrib$y,col=colors[SortLoss$ix[i]],lwd=lineWidth)
+    #lineWidth <- lineWidth - 3.0/NaccIter
+    lines(distrib$x,distrib$y,col=colors[SortLoss$ix[i]],lwd=lineWidth[SortLoss$ix[i]])
   } # End iteration loop for distributions
   # Plot in red the reference one
   lines(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0)
@@ -237,41 +257,41 @@ if (!MC) {
   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
 }
 
-# 4. Figures about correlations (Distribution correlations)
-#    Only for IBI and OnlyIBI 
-#if (!MC) {
-  mtp<-matrix(0,length(DistribALLSpl),length(DistribALLSpl[[1]]$Medians))
-  for (ipot in 1:length(DistribALLSpl)) 
-    mtp[ipot,]<- DistribALLSpl[[ipot]]$Medians
-  
-  mtp <- t(mtp)
-
-  if (ipot==5) {
-    names<-c("","","","","")
-  } else  {
-    names<-c("","","","")
-  }
-  colnames(mtp) <- names     
-  Spearman <- cor(mtp[,],method="spearman")    
-  pmat <- matrix(0,dim(Spearman)[1],dim(Spearman)[2])
-  # Add p-values to the lower triangular part of Pearson matrix
-  for (i in 1:dim(mtp)[2]) for (j in i:dim(mtp)[2]) {
-    pvalue <- cor.test(mtp[,i],mtp[,j],alternative="two.side",method="spearman")$p.val
-    pmat[i, j] <- pmat[j, i] <- pvalue
-    #if (pvalue<0.01) {  Spearman[j,i] <- 0.01 }
-  }
-  filename <- "FigForPaper/DistributionCorrelation.eps"
-  postscript(filename) 
-  pmm <- pmat
-  pmm[pmat>0.01] <- 0.0
-  pmm[pmat<=0.01] <- 1.0
-  corrplot(Spearman,p.mat=pmm,sig.level =0.01,method="color",type="lower",diag=F,cl.cex=1.4,pch="*")
-  dev.off()  
-  caption <- paste("Correlations among distributions",sep="")
-  tab <- xtable((Spearman[,]), caption=caption)
-  filename <- "FigForPaper/DistributionCorrelation.tex"
-  print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
-#}
+# # 4. Figures about correlations (Distribution correlations)
+# #    Only for IBI and OnlyIBI 
+# #if (!MC) {
+#   mtp<-matrix(0,length(DistribALLSpl),length(DistribALLSpl[[1]]$Medians))
+#   for (ipot in 1:length(DistribALLSpl)) 
+#     mtp[ipot,]<- DistribALLSpl[[ipot]]$Medians
+#   
+#   mtp <- t(mtp)
+# 
+#   if (ipot==5) {
+#     names<-c("","","","","")
+#   } else  {
+#     names<-c("","","","")
+#   }
+#   colnames(mtp) <- names     
+#   Spearman <- cor(mtp[,],method="spearman")    
+#   pmat <- matrix(0,dim(Spearman)[1],dim(Spearman)[2])
+#   # Add p-values to the lower triangular part of Pearson matrix
+#   for (i in 1:dim(mtp)[2]) for (j in i:dim(mtp)[2]) {
+#     pvalue <- cor.test(mtp[,i],mtp[,j],alternative="two.side",method="spearman")$p.val
+#     pmat[i, j] <- pmat[j, i] <- pvalue
+#     #if (pvalue<0.01) {  Spearman[j,i] <- 0.01 }
+#   }
+#   filename <- "FigForPaper/DistributionCorrelation.eps"
+#   postscript(filename) 
+#   pmm <- pmat
+#   pmm[pmat>0.01] <- 0.0
+#   pmm[pmat<=0.01] <- 1.0
+#   corrplot(Spearman,p.mat=pmm,sig.level =0.01,method="color",type="lower",diag=F,cl.cex=1.4,pch="*")
+#   dev.off()  
+#   caption <- paste("Correlations among distributions",sep="")
+#   tab <- xtable((Spearman[,]), caption=caption)
+#   filename <- "FigForPaper/DistributionCorrelation.tex"
+#   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
+# #}
 
 
 
@@ -303,7 +323,11 @@ if (MC) {
   maxy <- maxy + 4.0
   plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='', xlim=c(minx,maxx), ylim=c(miny,maxy), cex.axis=3.0, cex.lab=3.0) # MC  
 }else{
-  plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+7.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+  if (Alpha) {
+    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+7.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+  } else {
+    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+10.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+  }
 }
 axis(side = 1, tick = TRUE, font=2, cex.axis=2.5, cex.lab=2.2) 
 axis(side = 2, tick = FALSE, at=seq(miny,maxy), font=2, cex.axis=2.5, cex.lab=2.2, labels=FALSE)  
@@ -374,7 +398,7 @@ if (MC) {
   # Sort 
   #avgSort <- sort(AvgLoss,index.return=TRUE) 
   avgSort <- sort(Vm,index.return=TRUE) 
-  SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(10,length(avgSort$ix))],])
+  SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(10,length(avgSort$ix))]-1,])
   #s[,10] <- (s[,10]+3.14)*180/3.14
   #s[,8] <- s[,8]*180/3.14
   all_mean <- sapply(SortedParametersFrame,median)
@@ -414,14 +438,20 @@ if (MC) {
 
 # 7. Boxplot of RMS(Loss)
 # Use here ggplot2
-filename <- paste("FigForPaper/RMSLossFunction.eps")
-postscript(filename, height=5, width=10)
-par(mar=c(4,4,1,1),mgp=c(5,2,0),oma=c(1.0,1.0,1.0,1.0),new=FALSE)
-DMT <- as.data.frame(diff(mt))
-colnames(DMT) <- c("r13","r14","r15","Angle","Dihedral")
-boxplot(DMT)
-save(DMT,file="RMSLoss.RData")
-dev.off()
+if(!MC) {
+ filename <- paste("FigForPaper/RMSLossFunction.eps")
+ postscript(filename, height=5, width=10)
+ par(mar=c(4,4,1,1),mgp=c(5,2,0),oma=c(1.0,1.0,1.0,1.0),new=FALSE)
+ DMT <- as.data.frame(diff(mt))
+ if (ipot==5) {
+   colnames(DMT) <- c("r13","r14","r15","Angle","Dihedral")
+ } else {
+   colnames(DMT) <- c("r13","r14","Angle","Dihedral")
+ }
+ boxplot(DMT)
+ save(DMT,file="RMSLoss.RData")
+ dev.off()
+}
 
 
 # AcceptedIterations<-vector()

@@ -7,10 +7,11 @@ load("MCSA-IBI/RMSLoss.RData")
 DMTMC <- DMT
 rm(DMT)
 
-DMTIBI[,6]<-"IBI"
-DMTMC[,6]<-"MCSA-IBI"
+
+DMTIBI[,(ncol(DMTIBI)+1)]<-"IBI"
+DMTMC[,(ncol(DMTMC)+1)]<-"MCSA-IBI"
 DMT<-rbind(DMTMC,DMTIBI)
-colnames(DMT)[6]<-"Method"
+colnames(DMT)[(ncol(DMTIBI))]<-"Method"
 DMTMelt<-melt(DMT)
 
 #ggplot(DMTMelt,aes(x=Method,y=value,fill=variable)) + geom_boxplot()
@@ -29,6 +30,6 @@ theme(panel.background = element_rect(fill = 'white'),
       plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
       legend.title  = element_blank(),
       legend.text = element_text(lineheight=3, face="bold", color="black", size=15),
-      legend.position = c(0.2,0.9))
+      legend.position = c(0.85,0.9))
 print(BoxPlot)
-ggsave(BoxPlot,file="RMSLossBoxPlot.pdf")
+ggsave(BoxPlot,file="RMSLossBoxPlot.eps")
