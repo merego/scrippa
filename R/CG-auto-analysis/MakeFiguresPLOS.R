@@ -1,7 +1,14 @@
+options(echo=TRUE) # if you want see commands in output file
+args <- commandArgs(trailingOnly = TRUE)
+print(args)
+
+
 lappend <- function (lst, ...){
   lst <- c(lst, list(...))
   return(lst)
 }
+
+
 
 library("XML") # required for XML parsing
 library("gtools") # required for mixedsort
@@ -9,6 +16,15 @@ library("lattice") # required for levelplot
 library("xtable") # required for latex output
 library("fields") # required for plot colorscale
 library("corrplot") # 
+
+# SET SYSTEM PARAMs
+if (length(args)<3) {
+ stop("Usage : MakePLOSFig IBI MC Alpha")
+}
+IBI <- as.logical(args[1])
+MC <- as.logical(args[2])
+Alpha <- as.logical(args[3])
+
 
 # Distribution in the same order than in Main.XML
 #DistributionsType <- list("r13","")
@@ -21,10 +37,10 @@ n_of_runs <- length(files)
 
 # Load Reference distributions
 
-# SET SYSTEM PARAMs
-IBI <- TRUE
-MC <- TRUE
-Alpha <- FALSE
+
+print(IBI)
+print(MC)
+print(Alpha)
 
 MCIBI<-FALSE
 if (MC&&IBI) {
@@ -178,11 +194,11 @@ for (ipot in 1:length(DistribALLSpl)) {
   refDistrib <- refDistribs[[ipot]]
   if (MCIBI) {
     plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,1), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE) # MCSA-IBI
-    axis(side = 1, tick = TRUE, font=2, cex.axis=2.5, cex.lab=2.2) 
-    axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=2.5, cex.lab=2.2)  
+    axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
+    axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=3.0, cex.lab=2.2)  
   } else {
     plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,1), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE)
-    axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=2.5, cex.lab=2.2)  
+    axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=3.0, cex.lab=2.2)  
   }
   #lineWidth <- 5.0
   for (i in 1:length(DistribALLSpl[[ipot]]$dists)) {
@@ -191,10 +207,17 @@ for (ipot in 1:length(DistribALLSpl)) {
     lines(distrib$x,distrib$y,col=colors[SortLoss$ix[i]],lwd=lineWidth[SortLoss$ix[i]])
   } # End iteration loop for distributions
   # Plot in red the reference one
-  lines(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0)
+  lines(refDistrib$x,refDistrib$y,type="l",lty=2,col="#D95F02",lwd=5.0)
   # Plot in green the last one
-  #if (IBI)  
-  #  lines(distrib$x,distrib$y,type="l",lty=2,col="green",lwd=5.0)
+  if (IBI)  {
+   if (Alpha) {
+     lines(distrib$x,distrib$y,type="l",lty=4,col="#1B9E77",lwd=5.0)
+   } else {
+     i<-1
+     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
+     lines(distrib$x,distrib$y,col="#1B9E77",lwd=5.0)
+   }
+  }
   
   dev.off()
 }
@@ -329,8 +352,8 @@ if (MC) {
     plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+10.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
   }
 }
-axis(side = 1, tick = TRUE, font=2, cex.axis=2.5, cex.lab=2.2) 
-axis(side = 2, tick = FALSE, at=seq(miny,maxy), font=2, cex.axis=2.5, cex.lab=2.2, labels=FALSE)  
+axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
+axis(side = 2, tick = FALSE, at=seq(miny,maxy), font=2, cex.axis=3.0, cex.lab=2.2, labels=FALSE)  
 mtext("Iteration", side=1, line=4, cex=3.5)
 #mtext("[a.u.]", side=2, line=1.0, cex=3.5)
 # Add overalys
