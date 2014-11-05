@@ -253,31 +253,31 @@ if (!MC) {
     names<-c("","","","")
   }
   colnames(mt.scaled) <- names     
-  Spearman <- cor(mt.scaled[,],method="spearman")    
-  #Spearman <- abs(Spearman)
-  #Spearman[lower.tri(Spearman,diag=T)] = 0.0 # set 0 diagonal and lower tri matrix
-  pmat <- matrix(0,dim(Spearman)[1],dim(Spearman)[2])
-  # Add p-values to the lower triangular part of Pearson matrix
-  for (i in 1:dim(mt.scaled)[2]) for (j in i:dim(mt.scaled)[2]) {
-    pvalue <- cor.test(mt.scaled[,i],mt.scaled[,j],alternative="two.side",method="spearman")$p.val
-    pmat[i, j] <- pmat[j, i] <- pvalue
-    #if (pvalue<0.01) {  Spearman[j,i] <- 0.01 }
-  }
-  filename <- "FigForPaper/SpearmanCorrelation.eps"
-  postscript(filename) 
-  #my.plotcorr(Spearman, col=colors[((Spearman + 1)/2) * 100], main='Spearman correlations', lower.panel='none', diag='none',mar=0.0 + c(1, 0, 2, 2),outline=TRUE)
-  #image.plot(legend.only=TRUE,col=colors, zlim=c(-1,1),horizontal=TRUE,legend.mar=6.4,legend.shrink=0.4,legend.width=0.4 )
-  #corrplot(Spearman)  
-  # Reverse significant with insignificant, just for visualizing reasons
-  pmm <- pmat
-  pmm[pmat>0.01] <- 0.0
-  pmm[pmat<=0.01] <- 1.0
-  corrplot(Spearman,p.mat=pmm,sig.level =0.01,method="color",type="lower",diag=F,cl.cex=1.4,pch="*")
-  dev.off()  
-  caption <- paste("Correlations among loss functions",sep="")
-  tab <- xtable((Spearman[,]), caption=caption)
-  filename <- "FigForPaper/SpearmanCorrelation.tex"
-  print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
+#NOTUSED#  Spearman <- cor(mt.scaled[,],method="spearman")    
+#NOTUSED#  #Spearman <- abs(Spearman)
+#NOTUSED#  #Spearman[lower.tri(Spearman,diag=T)] = 0.0 # set 0 diagonal and lower tri matrix
+#NOTUSED#  pmat <- matrix(0,dim(Spearman)[1],dim(Spearman)[2])
+#NOTUSED#  # Add p-values to the lower triangular part of Pearson matrix
+#NOTUSED#  for (i in 1:dim(mt.scaled)[2]) for (j in i:dim(mt.scaled)[2]) {
+#NOTUSED#    pvalue <- cor.test(mt.scaled[,i],mt.scaled[,j],alternative="two.side",method="spearman")$p.val
+#NOTUSED#    pmat[i, j] <- pmat[j, i] <- pvalue
+#NOTUSED#    #if (pvalue<0.01) {  Spearman[j,i] <- 0.01 }
+#NOTUSED#  }
+#NOTUSED#  filename <- "FigForPaper/SpearmanCorrelation.eps"
+#NOTUSED#  postscript(filename) 
+#NOTUSED#  #my.plotcorr(Spearman, col=colors[((Spearman + 1)/2) * 100], main='Spearman correlations', lower.panel='none', diag='none',mar=0.0 + c(1, 0, 2, 2),outline=TRUE)
+#NOTUSED#  #image.plot(legend.only=TRUE,col=colors, zlim=c(-1,1),horizontal=TRUE,legend.mar=6.4,legend.shrink=0.4,legend.width=0.4 )
+#NOTUSED#  #corrplot(Spearman)  
+#NOTUSED#  # Reverse significant with insignificant, just for visualizing reasons
+#NOTUSED#  pmm <- pmat
+#NOTUSED#  pmm[pmat>0.01] <- 0.0
+#NOTUSED#  pmm[pmat<=0.01] <- 1.0
+#NOTUSED#  corrplot(Spearman,p.mat=pmm,sig.level =0.01,method="color",type="lower",diag=F,cl.cex=1.4,pch="*")
+#NOTUSED#  dev.off()  
+#NOTUSED#  caption <- paste("Correlations among loss functions",sep="")
+#NOTUSED#  tab <- xtable((Spearman[,]), caption=caption)
+#NOTUSED#  filename <- "FigForPaper/SpearmanCorrelation.tex"
+#NOTUSED#  print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")  
 }
 
 # # 4. Figures about correlations (Distribution correlations)
