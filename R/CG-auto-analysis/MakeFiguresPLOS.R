@@ -215,7 +215,7 @@ for (ipot in 1:length(DistribALLSpl)) {
    } else {
      i<-1
      distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-     lines(distrib$x,distrib$y,col="#1B9E77",lwd=5.0)
+     lines(distrib$x,distrib$y,type="l",lty=4,col="#1B9E77",lwd=5.0)
    }
   }
   
