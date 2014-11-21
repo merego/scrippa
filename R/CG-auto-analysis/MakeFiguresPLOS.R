@@ -24,13 +24,21 @@ if (length(args)<3) {
 IBI <- as.logical(args[1])
 MC <- as.logical(args[2])
 Alpha <- as.logical(args[3])
-#IBI<-TRUE
-#MC<-TRUE
-#Alpha<-TRUE
+# IBI<-TRUE
+# MC<-FALSE
+# Alpha<-TRUE
 
 
 # Distribution in the same order than in Main.XML
 #DistributionsType <- list("r13","")
+# Load Best iteration MC
+if (MC) {
+  BestMC <- xmlInternalTreeParse("OUTPUT/BestIteration_Output.xml");
+  BestIterationN <- as.numeric(xpathApply(BestMC, "//c_run",xmlValue))+1;
+  BestIteration <- paste("OUTPUT/r",BestIterationN,sep="")
+  print(BestIteration);
+}
+
 
 # Loop over runs
 DistribALLSpl <- list()
@@ -58,6 +66,7 @@ if (Alpha) {
   degpot <- 3
 }
 
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 #  1.  Load distributions and losses
 doc0 <- xmlInternalTreeParse(SortedFiles[1]);
@@ -65,6 +74,7 @@ src0 <- xpathApply(doc0, "//input/param")
 NumberOfPotentials <- xmlSize(src0)
 bOptimize <- vector()
 refDistribs <- list()
+BestMCDistribs <- list()
 ipotindex <- vector()
 # Load ref distributions and bOptimize vector
 for (ipot in 1:NumberOfPotentials) {
@@ -74,16 +84,29 @@ for (ipot in 1:NumberOfPotentials) {
    ipotindex <- append(ipotindex,ipot)
    filename <- paste('INPUT/Param',ipot-1,'.dat',sep="")
    refDistrib <- as.data.frame(read.table(filename))
-   if (ipot>degpot)
+   if (MC) {
+    filename <- paste(BestIteration,'/Param',ipot-1,'.dat',sep="")
+    BestMCDistrib <- as.data.frame(read.table(filename))
+   }
+   if (ipot>degpot) {
      refDistrib[,1] <- refDistrib[,1]/pi*180.0
+     if (MC) {
+      BestMCDistrib[,1] <- BestMCDistrib[,1]/pi*180.0
+     }
+   }
    refDistrib.spl <- spline(refDistrib[,1],refDistrib[,2]/sum(refDistrib[,2]),n=2*length(refDistrib[,1]))
    refDistribs <- lappend(refDistribs,refDistrib.spl)
+   if (MC) {
+    BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/sum(BestMCDistrib[,2]),n=2*length(BestMCDistrib[,1]))
+    BestMCDistribs <- lappend(BestMCDistribs,BestMCDistrib.spl)
+   }
   }
 }
 distribs.spl<-list()
 AllLossFrame <- as.data.frame(matrix(NA, n_of_runs, length(ipotindex)))
 ipotOpti <- 0
 ipotNparams <- vector()
+MatrixParams <- matrix(0,(n_of_runs-1),byrow=TRUE)
 for (ipot in 1:NumberOfPotentials) {
   distribs.spl <- list()
   losses <- vector()    
@@ -130,13 +153,19 @@ for (ipot in 1:NumberOfPotentials) {
         AllLossFrame[run,ipot] <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
         paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter_try",xmlValue))
         params <- append(params,paramipot)        
+      } else {                  
+          paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter",xmlValue))
+          params <- append(params,paramipot)                
       }
     } # iterations loop
     DistAndLosses <- list(dists=distribs.spl,losses=losses,Medians=Medians,acceptedIterations=acceptedIterations)
     DistribALLSpl <- lappend(DistribALLSpl,DistAndLosses)
     Nparams <- length(params)/(n_of_runs-1) 
     ipotNparams[ipotOpti] <- Nparams
-    MatrixParams <- matrix(params,(n_of_runs-1),byrow=TRUE)
+    if (MC)
+      MatrixParams <- matrix(params,(n_of_runs-1),byrow=TRUE)
+    else
+      MatrixParams <- matrix(params,(n_of_runs),byrow=TRUE)
     if (ipotOpti==1) 
       MatrixAllParams <- MatrixParams
     else
@@ -144,9 +173,45 @@ for (ipot in 1:NumberOfPotentials) {
   } # bOptimize if
 } # potentials loop
 
+colfunc = colorRampPalette(c("white","black"))
+for (ipot in 1:length(DistribALLSpl)) {
+  if (Alpha) {
+    if (ipot==1) {
+      ranges[1] <- 4.0
+      ranges[2] <- 8.0
+    } else if (ipot==2)  {
+      ranges[1] <- 4.0
+      ranges[2] <- 8.0
+    } else if (ipot==3)  {
+      ranges[1] <- 4.0
+      ranges[2] <- 8.0
+    } else if (ipot==4)  {
+      ranges[1] <- 60.0
+      ranges[2] <- 120.0
+    } else if (ipot==5)  {
+      ranges[1] <- 20.0
+      ranges[2] <- 120.0
+    }  } else {
+      if (ipot==1) {
+        ranges[1] <- 4.0
+        ranges[2] <- 8.0
+      } else if (ipot==2)  {
+        ranges[1] <- 4.0
+        ranges[2] <- 8.0    
+      } else if (ipot==3)  {
+        ranges[1] <- 60.0
+        ranges[2] <- 120.0
+      } else if (ipot==4)  {
+        ranges[1] <- 20.0
+        ranges[2] <- 120.0
+      }
+    }
+}
+
 
 #  2. Figures about distributions
 colfunc = colorRampPalette(c("white","black"))
+reflist<-list()
 for (ipot in 1:length(DistribALLSpl)) {
   #par(fig=c(0.0,1.0,0.0,1.0),mar=c(8,8,1,2),mgp=c(1.0,1.4,0.0),oma=c(0.1,0.1,0.1,0.1),new=FALSE)
   NaccIter <- length(DistribALLSpl[[ipot]]$losses)
@@ -157,7 +222,7 @@ for (ipot in 1:length(DistribALLSpl)) {
   #}
   colors <- colfunc(NaccIter)
   #lineWidth<-5.0/(xx^0.15)
-  lineWidth<-seq(0.1,5.0,length.out = NaccIter )
+  lineWidth<-seq(1.0,7.0,length.out = NaccIter )
   ranges <- c()
   if (Alpha) {
   if (ipot==1) {
@@ -188,8 +253,17 @@ for (ipot in 1:length(DistribALLSpl)) {
     } else if (ipot==4)  {
       ranges[1] <- 20.0
       ranges[2] <- 120.0
-    }
+    }     
+    
   }
+  rF<-as.data.frame(refDistribs[[ipot]])
+  rFB <- rF
+  rFB[,2]<- -log(rF[,2])  
+  gg1 <- ggplot(data=rF) + geom_line(aes(x=x, y = y),col="black",size=2)
+  gg2 <- ggplot(data=rFB) + geom_line(aes(x=x, y = y),col="black",size=2)
+  
+  
+}
   
   filename <- paste("FigForPaper/Param",ipotindex[ipot]-1,".eps",sep="")
   #tiff(filename, width = 1200, height = 1200, units = 'px', compression = c("none") )
@@ -198,7 +272,7 @@ for (ipot in 1:length(DistribALLSpl)) {
   refDistrib <- refDistribs[[ipot]]
 
   last <- length(DistribALLSpl[[ipot]]$dists)
-  step <- round(length(DistribALLSpl[[ipot]]$dists) / 10)
+  step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
   # Find max y
   maxyv<-vector()
   maxyv[1]<-max(refDistrib$y)
@@ -209,14 +283,17 @@ for (ipot in 1:length(DistribALLSpl)) {
   if (MC) {
     maxy<-max(maxyv,na.rm=TRUE)
   } else {
-    maxy<-median(maxyv,na.rm=TRUE) + 0.15*median(maxyv,na.rm=TRUE)
+    if (Alpha)
+      maxy<-median(maxyv,na.rm=TRUE) + 0.28*median(maxyv,na.rm=TRUE)
+    else
+      maxy<-max(maxyv,na.rm=TRUE)
   }
   if (MCIBI) {
-    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,maxy), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE) # MCSA-IBI
+    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=cbbPalette[7],lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,maxy), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE) # MCSA-IBI
     axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
     #axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=3.0, cex.lab=2.2)  
   } else {
-    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=554,lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,maxy), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE)
+    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=cbbPalette[7],lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,maxy), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE)
     #axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=3.0, cex.lab=2.2)  
   }
   for (i in seq(1,last,by=step) ) {
@@ -226,16 +303,14 @@ for (ipot in 1:length(DistribALLSpl)) {
     lines(distrib$x,distrib$y,col=colors[i],lwd=lineWidth[i])
   } # End iteration loop for distributions
   # Plot in red the reference one
-  lines(refDistrib$x,refDistrib$y,type="l",lty=2,col="#D95F02",lwd=5.0)
+  lines(refDistrib$x,refDistrib$y,type="l",lty=2,col=cbbPalette[7],lwd=7.0)
   # Plot in green the last one
-  if (IBI)  {
-   #if (Alpha) {
-     lines(distrib$x,distrib$y,type="l",lty=4,col="#1B9E77",lwd=5.0)
-   #} else {
-   #  i<-1
-   #  distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-   #  lines(distrib$x,distrib$y,type="l",lty=4,col="#1B9E77",lwd=5.0)
-   #}
+  if (MC)  {   
+    distrib <- BestMCDistribs[[ipot]]
+    lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)     
+  } else {  
+    distrib <- DistribALLSpl[[ipot]]$dists[[last-1]]
+    lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)         
   }
   
   dev.off()
@@ -246,11 +321,14 @@ for (ipot in 1:length(DistribALLSpl)) {
 #    Only for IBI and OnlyIBI 
 if (!MC) {
   m<-matrix(0,length(DistribALLSpl),length(DistribALLSpl[[1]]$losses))
-  for (ipot in 1:length(DistribALLSpl)) 
+  for (ipot in 1:length(DistribALLSpl)) { 
     m[ipot,]<- DistribALLSpl[[ipot]]$losses
+    
+  }
   
   mt <- t(m)
-  mt.scaled<-scale(mt)
+  #mt.scaled<-scale(mt)
+  mt.scaled<-mt
   
   
   # Shift to positve value only
@@ -259,9 +337,9 @@ if (!MC) {
   
   # Shift by 1 each for better visualization
   for (ipot in 1:length(DistribALLSpl)) 
-    mt.scaled[,ipot] <- mt.scaled[,ipot] + 3*ipot
+    mt.scaled[,ipot] <- mt.scaled[,ipot] + 1.0*ipot
   
-  minx <- 2
+  minx <- 1
   maxx <- length(DistribALLSpl[[1]]$losses)
   miny <- min(mt.scaled)
   maxy <- max(mt.scaled)
@@ -341,6 +419,7 @@ if (!MC) {
 filename <- paste("FigForPaper/LossFunction.eps")
 postscript(filename, height=5, width=10)
 par(mar=c(7,8,2,1),mgp=c(4,1.5,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
+
 # Find x-y ranges Form MC only
 if (MC) {
   minx<-1
@@ -358,17 +437,20 @@ if (MC) {
     
     if (min(loss,na.rm=TRUE)<miny)
       miny <- min(loss,na.rm=TRUE)    
-  }
+  }  
 }
 # Do the first plot
 if (MC) { 
-  maxy <- maxy + 4.0
+  if (Alpha)
+    maxy <- maxy + 4.0
+  else
+    maxy <- maxy + 3.5
   plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='', xlim=c(minx,maxx), ylim=c(miny,maxy), cex.axis=3.0, cex.lab=3.0) # MC  
 }else{
   if (Alpha) {
-    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+7.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+5.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
   } else {
-    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+3,maxy+10.5), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+1,maxy+5.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
   }
 }
 axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
@@ -388,21 +470,26 @@ for (ipot in 1:length(DistribALLSpl)) {
   # Set colors and point type
   if (ipot==1) {
     color<-"steelblue2"
+    color<-cbbPalette[1]
     ptype<-ipot+20
   } else if (ipot==2) {
     color<-"#d50000"
+    color<-cbbPalette[2]
     ptype<-ipot+20
   } else if (ipot==3) {
     if (length(DistribALLSpl)==5) {
       color<-"#00d254"
+      color<-cbbPalette[4]
       ptype<-ipot+20
     } else {
       color<-"#e56cff"
+      color<-cbbPalette[3]
       ptype<-ipot+21
     }
   } else if (ipot==4)  {
     if (length(DistribALLSpl)==5) {
       color<-"#e56cff"
+      color<-cbbPalette[3]
       ptype<-ipot+20
     } else {
       color<-"#fffd43"
@@ -410,9 +497,12 @@ for (ipot in 1:length(DistribALLSpl)) {
     }
   } else if (ipot==5) {
     color<-"#fffd43"
+    color<-cbbPalette[5]
     ptype<-ipot+20
   }
-  points(Acc,loss+1*ipot-1, pch=ptype, bg=color, cex=2.0)
+  #points(Acc,loss+1*ipot-1, pch=ptype, bg=color, cex=2.0)
+  lines(Acc,loss+1*ipot-1, col="black", lwd=6.5)
+  lines(Acc,loss+1*ipot-1, col=color, lwd=5.0)  
   #symbols(Acc,loss,circles=rep(0.5,length(Acc)),inches=1/8,ann=F,bg=color,add=TRUE)
 } # end ipot loop
 dev.off()

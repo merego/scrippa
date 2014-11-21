@@ -19,7 +19,7 @@ colnames(AvgLoss)<-c("Avgk1", "Avgk2", "Stdk2", "AvgLoss", "StdLoss")
 miy <- min(AvgLoss[,2]-AvgLoss[,3]-1)
 may <- max(AvgLoss[,2]+AvgLoss[,3]+1)
 
-
+cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#F0E442")
 
 x<-xyz[,1]
 y<-xyz[,2]
@@ -31,7 +31,8 @@ minVal <- 20
 Tline<-data.frame(xline=s$x, yline=2*minVal - s$y * alpha^2)
 gpl1 <- ggplot() + 
         geom_raster(data=kriged$map,aes(x=x,y=y,fill=z),hjust = 0, vjust = 0) +
-        scale_fill_gradient(low = "#F70000", high = "#F7DE00",limits=c(0,0.2), guide = guide_legend(keyheight = 3)) +        
+        scale_fill_gradientn(colours=cbbPalette, limits=c(0,0.2), guide = guide_legend(keyheight = 3)) +        
+        #scale_fill_gradient(low = "#F70000", high = "#F7DE00",limits=c(0,0.2), guide = guide_legend(keyheight = 3)) +        
         stat_contour(data=kriged$map,aes(x=x,y=y,z=z)) +
         geom_line(dat=Tline,aes(x=xline,y=yline),  colour="white", size=3.0, linetype="dotted") +
         scale_x_continuous(expand=c(0.01,0), limits=c(min(kriged$map$x),45)) + 

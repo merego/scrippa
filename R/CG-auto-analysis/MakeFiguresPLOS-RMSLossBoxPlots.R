@@ -24,7 +24,7 @@ if (ncol(DMTIBI)==6) {
 cbbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 # To use for fills, add
 
-BoxPlot <- ggplot(DMTMelt,aes(x=variable,y=value,fill=Method)) + geom_boxplot() +
+BoxPlot <- ggplot(DMTMelt,aes(x=variable,y=value,fill=Method)) + geom_boxplot(outlier.size = 0) +
   scale_fill_manual(values=cbbPalette) +
   scale_x_discrete(labels=ticsLabels) +
 theme(panel.background = element_rect(fill = 'white'), 
@@ -37,6 +37,6 @@ theme(panel.background = element_rect(fill = 'white'),
       plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
       legend.title  = element_blank(),
       legend.text = element_text(lineheight=3, face="bold", color="black", size=20),
-      legend.position = c(0.85,0.9))
+      legend.position = c(0.85,0.95))
 print(BoxPlot)
 ggsave(BoxPlot,file="RMSLossBoxPlot.eps")
