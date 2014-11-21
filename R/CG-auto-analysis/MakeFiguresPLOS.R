@@ -8,6 +8,14 @@ lappend <- function (lst, ...){
   return(lst)
 }
 
+morse <- function(x,c0,c1,c2) {
+  f <- c0 * ( (1.0 - exp(-c2*(x-c1)) )^2 - 1.0 )
+  return(f)
+}
+
+Rk <-   1.9858775e-3 # kcal mol^-1 K^-1
+Temp <- 300 # K
+
 
 
 library("XML") # required for XML parsing
@@ -16,6 +24,9 @@ library("lattice") # required for levelplot
 library("xtable") # required for latex output
 library("fields") # required for plot colorscale
 library("corrplot") # 
+library("ggplot2")
+library("gridExtra")
+
 
 # SET SYSTEM PARAMs
 if (length(args)<3) {
@@ -173,6 +184,7 @@ for (ipot in 1:NumberOfPotentials) {
   } # bOptimize if
 } # potentials loop
 
+# dists and pot
 colfunc = colorRampPalette(c("white","black"))
 for (ipot in 1:length(DistribALLSpl)) {
   if (Alpha) {
@@ -206,6 +218,49 @@ for (ipot in 1:length(DistribALLSpl)) {
         ranges[2] <- 120.0
       }
     }
+   #REFERENCE
+   #refdist <- as.data.frame(refDistribs[[ipot]])
+   refdist <- as.data.frame(list(x=c(0.0,1.0,2.0,3.0,4.0,5.0),y=c(0.0,0.1,0.7,0.1,0.1,0.0)))
+   refdist[,3] <- - Rk * Temp * log(refdist[,2])
+   colnames(refdist) <- c("q","pref","uref")
+   
+   ggplBASE <- ggplot(data=refdist)
+   
+   dist <- as.data.frame(list(x=c(0.0,1.0,2.0,3.0,4.0,5.0),y=c(0.0,0.1,0.5,0.1,0.1,0.0)))
+   dist[,3] <- - Rk * Temp * log(dist[,2])
+   c0<-0.1
+   c1<-2.0
+   c2<-0.4
+   dist[,4] <- morse(dist[,1],c0,c1,c2)
+   colnames(dist) <- c("q","p","u","ufit")
+   
+   ggpl1BASE <- ggplBASE + geom_line(aes(x=q,y=pref),size=2,colour="red")
+ggpl2BASE <- ggplBASE + geom_line(aes(x=q,y=uref),size=2,colour="red")
+
+# For loop over distributions ...
+#filename<-paste("plot",ipot,"eps")
+ggpl1 <- ggpl1BASE + geom_line(data=dist,aes(x=q,y=p),size=2)
+ggpl2 <- ggpl2BASE + geom_line(data=dist,aes(x=q,y=u),size=2) + geom_line(data=dist,aes(x=q,y=ufit),colour="blue",size=2)
+plotlist<-list()
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+plotlist <-lappend(plotlist,ggpl1)
+plotlist <-lappend(plotlist,ggpl2)
+do.call(grid.arrange,c(plotlist,ncol=4))
+#allGGPL<-grid.arrange(ggpl1,ggpl2)
+#ggsave(allGGPL,file=filename)  
 }
 
 
