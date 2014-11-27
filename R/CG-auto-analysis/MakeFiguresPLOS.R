@@ -1,6 +1,6 @@
-options(echo=TRUE) # if you want see commands in output file
-args <- commandArgs(trailingOnly = TRUE)
-print(args)
+# options(echo=TRUE) # if you want see commands in output file
+# args <- commandArgs(trailingOnly = TRUE)
+# print(args)
 
 
 lappend <- function (lst, ...){
@@ -12,6 +12,17 @@ morse <- function(x,c0,c1,c2) {
   f <- c0 * ( (1.0 - exp(-c2*(x-c1)) )^2 - 1.0 )
   return(f)
 }
+
+Cosine <- function(x,c0,c1) {
+  f <- c0 * (1.0 + cos(1.0 * x - c1))
+  return(f)
+}
+
+HarmonicCosine <- function(x,c0,c1) {
+  f <- 0.5 * c0 * (cos(x) - cos(c1))^2
+  return(f)
+}
+
 
 Rk <-   1.9858775e-3 # kcal mol^-1 K^-1
 Temp <- 300 # K
@@ -28,16 +39,16 @@ library("ggplot2")
 library("gridExtra")
 
 
-# SET SYSTEM PARAMs
-if (length(args)<3) {
- stop("Usage : MakePLOSFig IBI MC Alpha")
-}
-IBI <- as.logical(args[1])
-MC <- as.logical(args[2])
-Alpha <- as.logical(args[3])
-# IBI<-TRUE
-# MC<-FALSE
-# Alpha<-TRUE
+# # SET SYSTEM PARAMs
+# if (length(args)<3) {
+#  stop("Usage : MakePLOSFig IBI MC Alpha")
+# }
+# IBI <- as.logical(args[1])
+# MC <- as.logical(args[2])
+# Alpha <- as.logical(args[3])
+IBI<-TRUE
+MC<-FALSE
+Alpha<-TRUE
 
 
 # Distribution in the same order than in Main.XML
@@ -71,10 +82,13 @@ if (MC&&IBI) {
   IBI<-TRUE
 }
 
-if (Alpha) {
-  degpot <- 4
+
+if (Alpha) { 
+  #potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
+  potlist<-c("null","r12","theta","vdw")  
+  #potlist<-c("null","r12","vdw")  
 } else {
-  degpot <- 3
+  potlist<-c("null","r12","r13","theta","phi","vdw")  
 }
 
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -98,28 +112,29 @@ for (ipot in 1:NumberOfPotentials) {
    if (MC) {
     filename <- paste(BestIteration,'/Param',ipot-1,'.dat',sep="")
     BestMCDistrib <- as.data.frame(read.table(filename))
-   }
-   if (ipot>degpot) {
+   } 
+   if ((potlist[ipot]=="theta")||(potlist[ipot]=="phi")) {
      refDistrib[,1] <- refDistrib[,1]/pi*180.0
      if (MC) {
       BestMCDistrib[,1] <- BestMCDistrib[,1]/pi*180.0
      }
    }
-   refDistrib.spl <- spline(refDistrib[,1],refDistrib[,2]/sum(refDistrib[,2]),n=2*length(refDistrib[,1]))
+   refDistrib.spl <- spline(refDistrib[,1],refDistrib[,2]/(sum(refDistrib[,2])*diff(refDistrib[,1])[1]),n=2*length(refDistrib[,1]))
    refDistribs <- lappend(refDistribs,refDistrib.spl)
    if (MC) {
-    BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/sum(BestMCDistrib[,2]),n=2*length(BestMCDistrib[,1]))
+    BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/(sum(BestMCDistrib[,2])*diff(BestMCDistrib[,1])[1]),n=2*length(BestMCDistrib[,1]))
     BestMCDistribs <- lappend(BestMCDistribs,BestMCDistrib.spl)
-   }
+   } 
   }
 }
-distribs.spl<-list()
 AllLossFrame <- as.data.frame(matrix(NA, n_of_runs, length(ipotindex)))
 ipotOpti <- 0
 ipotNparams <- vector()
 MatrixParams <- matrix(0,(n_of_runs-1),byrow=TRUE)
 for (ipot in 1:NumberOfPotentials) {
   distribs.spl <- list()
+  FittedPMFs <- list()
+  ToBeFittedPMFs <- list()
   losses <- vector()    
   Medians <- vector()    
   acceptedIterations <- vector()
@@ -142,6 +157,13 @@ for (ipot in 1:NumberOfPotentials) {
        # Read Distribution
        filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat',sep="")
        distrib <- as.data.frame(read.table(filename))
+       # Read Fitted PMF (only for IBI)
+       if (IBI)  {
+        filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat.fitted.PMF.dat',sep="")
+        Fitted <- as.data.frame(read.table(filename))
+        filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat.tobefitted.PMF.dat',sep="")
+        ToBeFitted <- as.data.frame(read.table(filename))
+       }           
        # And compute median 
        forMedian <- which(cumsum(distrib[,2]/sum(distrib[,2]))<0.5)
        Median <- distrib[c(length(forMedian)),1]
@@ -149,11 +171,17 @@ for (ipot in 1:NumberOfPotentials) {
 
        # And for only accepted distributions (always true if IBI is used)
         if (status=="true") {
-            if (ipot>degpot)
-            distrib[,1] <- distrib[,1]/pi*180.0          
+            if ((potlist[ipot]=="theta")||(potlist[ipot]=="phi")) {
+             distrib[,1] <- distrib[,1]/pi*180.0    
+             Fitted[,1] <- Fitted[,1]/pi*180.0    
+             ToBeFitted[,1] <- ToBeFitted[,1]/pi*180.0
+            }
           
-          distrib.spl <- spline(distrib[,1],distrib[,2]/sum(distrib[,2]),n=2*length(distrib[,1]))
+          distrib.spl <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
           distribs.spl <- lappend(distribs.spl,distrib.spl)
+          Fitted.spl <- spline(Fitted[,1],Fitted[,2],n=2*length(Fitted[,1]))
+          FittedPMFs <- lappend(FittedPMFs,Fitted.spl)    
+          ToBeFittedPMFs <- lappend(ToBeFittedPMFs,ToBeFitted)
           #lineWidth <- 5.0        
           loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
           losses <- append(losses,loss)   
@@ -166,102 +194,163 @@ for (ipot in 1:NumberOfPotentials) {
         params <- append(params,paramipot)        
       } else {                  
           paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter",xmlValue))
-          params <- append(params,paramipot)                
+          params <- append(params,paramipot)               
       }
     } # iterations loop
-    DistAndLosses <- list(dists=distribs.spl,losses=losses,Medians=Medians,acceptedIterations=acceptedIterations)
-    DistribALLSpl <- lappend(DistribALLSpl,DistAndLosses)
-    Nparams <- length(params)/(n_of_runs-1) 
+    Nparams <- round(length(params)/(n_of_runs-1)) 
     ipotNparams[ipotOpti] <- Nparams
-    if (MC)
-      MatrixParams <- matrix(params,(n_of_runs-1),byrow=TRUE)
-    else
-      MatrixParams <- matrix(params,(n_of_runs),byrow=TRUE)
-    if (ipotOpti==1) 
-      MatrixAllParams <- MatrixParams
-    else
+    if (MC) {
+      MatrixParams <- matrix(params,(n_of_runs-1),byrow=TRUE) 
+    }   else {
+      MatrixParams <- matrix(params,(n_of_runs),byrow=TRUE) }
+    if (ipotOpti==1) {
+      MatrixAllParams <- MatrixParams }
+    else {
       MatrixAllParams <- cbind(MatrixAllParams,MatrixParams)
+    }
+    DistAndLosses <- list(dists=distribs.spl,losses=losses,Medians=Medians,acceptedIterations=acceptedIterations,params=MatrixParams,FittedPMFs=FittedPMFs,ToBeFittedPMFs=ToBeFittedPMFs)
+    DistribALLSpl <- lappend(DistribALLSpl,DistAndLosses)
+    
   } # bOptimize if
 } # potentials loop
 
 # dists and pot
-colfunc = colorRampPalette(c("white","black"))
-for (ipot in 1:length(DistribALLSpl)) {
-  if (Alpha) {
-    if (ipot==1) {
-      ranges[1] <- 4.0
-      ranges[2] <- 8.0
-    } else if (ipot==2)  {
-      ranges[1] <- 4.0
-      ranges[2] <- 8.0
-    } else if (ipot==3)  {
-      ranges[1] <- 4.0
-      ranges[2] <- 8.0
-    } else if (ipot==4)  {
-      ranges[1] <- 60.0
-      ranges[2] <- 120.0
-    } else if (ipot==5)  {
-      ranges[1] <- 20.0
-      ranges[2] <- 120.0
-    }  } else {
-      if (ipot==1) {
-        ranges[1] <- 4.0
-        ranges[2] <- 8.0
-      } else if (ipot==2)  {
-        ranges[1] <- 4.0
-        ranges[2] <- 8.0    
-      } else if (ipot==3)  {
-        ranges[1] <- 60.0
-        ranges[2] <- 120.0
-      } else if (ipot==4)  {
-        ranges[1] <- 20.0
-        ranges[2] <- 120.0
-      }
-    }
+# DEBUG
+Debug <- TRUE
+if (Debug) {
+ ranges <- c()
+ colfunc = colorRampPalette(c("white","black"))
+ for (ipot in 1:length(DistribALLSpl)) {
+  
    #REFERENCE
-   #refdist <- as.data.frame(refDistribs[[ipot]])
-   refdist <- as.data.frame(list(x=c(0.0,1.0,2.0,3.0,4.0,5.0),y=c(0.0,0.1,0.7,0.1,0.1,0.0)))
+   refdist <- as.data.frame(refDistribs[[ipot]])
+   refdist[,2] <- refdist[,2]/(sum(refdist[,2])*diff(refdist[,1])[1])
+   #refdist <- as.data.frame(list(x=c(0.0,1.0,2.0,3.0,4.0,5.0),y=c(0.0,0.1,0.7,0.1,0.1,0.0)))   
    refdist[,3] <- - Rk * Temp * log(refdist[,2])
+   
+   
    colnames(refdist) <- c("q","pref","uref")
    
-   ggplBASE <- ggplot(data=refdist)
-   
-   dist <- as.data.frame(list(x=c(0.0,1.0,2.0,3.0,4.0,5.0),y=c(0.0,0.1,0.5,0.1,0.1,0.0)))
-   dist[,3] <- - Rk * Temp * log(dist[,2])
-   c0<-0.1
-   c1<-2.0
-   c2<-0.4
-   dist[,4] <- morse(dist[,1],c0,c1,c2)
-   colnames(dist) <- c("q","p","u","ufit")
-   
-   ggpl1BASE <- ggplBASE + geom_line(aes(x=q,y=pref),size=2,colour="red")
-ggpl2BASE <- ggplBASE + geom_line(aes(x=q,y=uref),size=2,colour="red")
+   ggplBASE <- ggplot(data=refdist) +
+    theme_bw() +
+    theme(#axis.text.x=element_blank(),
+      axis.ticks.x=element_blank(),
+      axis.title.x=element_blank(),
+      plot.margin = rep(unit(0,"null"),4),
+      panel.margin = unit(0,"null"))
+          #labs(x=NULL))
+          #axis.ticks.length = unit(0,"null"),
+          #axis.ticks.margin = unit(0,"null")) +
+ 
+   ggpl1BASE <- ggplBASE + geom_line(aes(x=q,y=pref),size=2,colour="red") 
+   ggpl2BASE <- ggplBASE + geom_line(aes(x=q,y=uref),size=2,colour="red")
 
-# For loop over distributions ...
-#filename<-paste("plot",ipot,"eps")
-ggpl1 <- ggpl1BASE + geom_line(data=dist,aes(x=q,y=p),size=2)
-ggpl2 <- ggpl2BASE + geom_line(data=dist,aes(x=q,y=u),size=2) + geom_line(data=dist,aes(x=q,y=ufit),colour="blue",size=2)
-plotlist<-list()
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-plotlist <-lappend(plotlist,ggpl1)
-plotlist <-lappend(plotlist,ggpl2)
-do.call(grid.arrange,c(plotlist,ncol=4))
-#allGGPL<-grid.arrange(ggpl1,ggpl2)
-#ggsave(allGGPL,file=filename)  
-}
+   last <- length(DistribALLSpl[[ipot]]$dists)  
+   last <- 20
+   nplots <- 10
+   nblocks <- last/nplots 
+   
+   plotlist<-list()
+   starti <- 0
+   endi <- 0
+   for (iblock in seq(1,nblocks,by=1) ) {
+    starti <- endi + 1
+    endi <- starti + nplots - 1
+    if (iblock==nblocks) {
+      endi <- starti + nplots - 2
+    }
+    print(starti)
+    print(endi)  
+    plotlist<-list()
+    for (i in seq(starti,endi,by=1) ) {
+     ## SET ranges and parameters
+     if (Alpha) {
+       if (potlist[ipotindex[ipot]]=="r12") {
+         ranges[1] <- 5.0
+         ranges[2] <- 6.0
+         ranges[3] <- -3.0
+         ranges[4] <- 3.0         
+       } else  if (potlist[ipotindex[ipot]]=="r13") {
+         ranges[1] <- 4.0
+         ranges[2] <- 6.0
+         ranges[3] <- 0.0
+         ranges[4] <- 6.0
+       } else  if (potlist[ipotindex[ipot]]=="r14") {
+         ranges[1] <- 5.0
+         ranges[2] <- 7.0
+         ranges[3] <- 0.0
+         ranges[4] <- 6.0
+       } else  if (potlist[ipotindex[ipot]]=="theta") {
+         ranges[1] <- 60.0
+         ranges[2] <- 120.0
+         ranges[3] <- 0.0
+         ranges[4] <- 6.0
+       } else  if (potlist[ipotindex[ipot]]=="phi") {
+         ranges[1] <- 25.0
+         ranges[2] <- 75.0
+         ranges[3] <- 0.0
+         ranges[4] <- 6.0
+       }  } else {
+         if (potlist[ipotindex[ipot]]=="r12") {
+           ranges[1] <- 4.0
+           ranges[2] <- 8.0
+         } else  if (potlist[ipotindex[ipot]]=="r13") {
+           ranges[1] <- 4.0
+           ranges[2] <- 8.0    
+         } else  if (potlist[ipotindex[ipot]]=="theta") {
+           ranges[1] <- 60.0
+           ranges[2] <- 120.0
+         } else  if (potlist[ipotindex[ipot]]=="phi") {
+           ranges[1] <- 20.0
+           ranges[2] <- 120.0
+         }
+       }
+     dist <- as.data.frame(DistribALLSpl[[ipot]]$dists[[i]])
+     dist[,2] <- dist[,2]/(sum(dist[,2])*diff(dist[,1])[1])
+     dist[,3] <- - Rk * Temp * log(dist[,2])
+     Fitted <- as.data.frame(DistribALLSpl[[ipot]]$FittedPMFs[i])
+     #ind1<- (dist[,1]>ranges[1]) & (dist[,1]<ranges[2])
+     #ind2<- (Fitted$x>ranges[1]) & (Fitted$x<ranges[2])
+     #shift <- (min(dist[ind1,3],na.rm=TRUE) - min(Fitted$y[ind2],na.rm=TRUE))
+     #Fitted$y <- Fitted$y+shift
+     
+     ToBeFitted <- as.data.frame(DistribALLSpl[[ipot]]$ToBeFittedPMFs[i])
+        
+     if (i==1) {
+       Uprev <- refdist[,3]
+     } else {
+       dprev <- as.data.frame(DistribALLSpl[[ipot]]$dists[[i-1]])
+       dprev[,2] <- dprev[,2]/(sum(dprev[,2])*diff(dprev[,1])[1])
+       Uprev <- -Rk * Temp * log(dprev[,2])
+     }
+     
+     Unext <- as.data.frame(dist[,1])
+     Unext[,2] <- Uprev + Rk * Temp * log(dist[,2]/refdist[,2])
+     
+     colnames(dist) <- c("q","p","u")
+     colnames(Unext) <- c("q","unext")
+     iterval <- i-1
+     ggpl1 <- ggpl1BASE + geom_line(data=dist,aes(x=q,y=p),size=2) +
+       scale_x_continuous(limits=c(ranges[1],ranges[2])) + 
+       scale_y_continuous(name="p") 
+     xlabel<-ranges[2]-ranges[1]/100*10
+     ylabel<-ranges[4]-ranges[2]/100*5
+     ggpl2 <- ggpl2BASE + geom_line(data=dist,aes(x=q,y=u),size=2) +        
+       geom_line(data=ToBeFitted,aes(x=V1,y=V2),lty=1,colour="yellow",size=2) + 
+       geom_line(data=Fitted,aes(x=x,y=y),lty=2,colour="green",size=2) +        
+       scale_x_continuous(limits=c(ranges[1],ranges[2])) + 
+       scale_y_continuous(name="u",limits=c(ranges[3],ranges[4])) +
+       annotate("text",x=xlabel,y=ylabel,label=iterval) 
+     
+     plotlist <-lappend(plotlist,ggpl1)
+     plotlist <-lappend(plotlist,ggpl2)
+   }
+   do.call(grid.arrange,c(plotlist,ncol=4))
+   filename<-paste("FigForPaper/Debug/plot",ipot,"block",iblock,".eps",sep="")
+   ggsave(filename,do.call(arrangeGrob,c(plotlist,ncol=4)))
+  } # END BLOCKS LOOP
+ } # End potentials loop
+} #END IF DEBUG
 
 
 #  2. Figures about distributions
@@ -280,45 +369,37 @@ for (ipot in 1:length(DistribALLSpl)) {
   lineWidth<-seq(1.0,7.0,length.out = NaccIter )
   ranges <- c()
   if (Alpha) {
-  if (ipot==1) {
+   if (potlist[ipotindex[ipot]]=="r12") {
     ranges[1] <- 4.0
     ranges[2] <- 8.0
-  } else if (ipot==2)  {
+   } else if (potlist[ipotindex[ipot]]=="r13") {
     ranges[1] <- 4.0
     ranges[2] <- 8.0
-  } else if (ipot==3)  {
+   } else if (potlist[ipotindex[ipot]]=="r14") {
     ranges[1] <- 4.0
     ranges[2] <- 8.0
-  } else if (ipot==4)  {
+   } else if (potlist[ipotindex[ipot]]=="theta") {
     ranges[1] <- 60.0
     ranges[2] <- 120.0
-  } else if (ipot==5)  {
+   } else if (potlist[ipotindex[ipot]]=="phi") {
     ranges[1] <- 20.0
     ranges[2] <- 120.0
-  }  } else {
-    if (ipot==1) {
+   }  
+  } else {
+   if (potlist[ipotindex[ipot]]=="r12") {
       ranges[1] <- 4.0
       ranges[2] <- 8.0
-    } else if (ipot==2)  {
+   } else if (potlist[ipotindex[ipot]]=="r13") {
       ranges[1] <- 4.0
       ranges[2] <- 8.0    
-    } else if (ipot==3)  {
+   } else if (potlist[ipotindex[ipot]]=="theta") {
       ranges[1] <- 60.0
       ranges[2] <- 120.0
-    } else if (ipot==4)  {
+   } else if (potlist[ipotindex[ipot]]=="phi") {
       ranges[1] <- 20.0
       ranges[2] <- 120.0
-    }     
-    
-  }
-  rF<-as.data.frame(refDistribs[[ipot]])
-  rFB <- rF
-  rFB[,2]<- -log(rF[,2])  
-  gg1 <- ggplot(data=rF) + geom_line(aes(x=x, y = y),col="black",size=2)
-  gg2 <- ggplot(data=rFB) + geom_line(aes(x=x, y = y),col="black",size=2)
-  
-  
-}
+   }         
+  }  
   
   filename <- paste("FigForPaper/Param",ipotindex[ipot]-1,".eps",sep="")
   #tiff(filename, width = 1200, height = 1200, units = 'px', compression = c("none") )
@@ -401,8 +482,12 @@ if (!MC) {
   
   if (ipot==5) {
     names<-c("","","","","")
-  } else  {
+  } else if (ipot==4)  {
     names<-c("","","","")
+  }  else if (ipot==2)  {
+    names<-c("","")
+  }  else if (ipot==1)  {
+    names<-c("")
   }
   colnames(mt.scaled) <- names     
 #NOTUSED#  Spearman <- cor(mt.scaled[,],method="spearman")    
@@ -625,6 +710,8 @@ if (MC) {
 
 # 7. Boxplot of RMS(Loss)
 # Use here ggplot2
+doit<-FALSE
+if(doit) {
 if(!MC) {
  filename <- paste("FigForPaper/RMSLossFunction.eps")
  postscript(filename, height=5, width=10)
@@ -639,7 +726,7 @@ if(!MC) {
  save(DMT,file="RMSLoss.RData")
  dev.off()
 }
-
+}
 
 # AcceptedIterations<-vector()
 # # Load distributions and loss functions
