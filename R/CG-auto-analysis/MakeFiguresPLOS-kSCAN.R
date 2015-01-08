@@ -13,11 +13,11 @@ xyz[,2] <- xyz[,2] * sin(1.6057)^2
 kriged <- kriging(xyz[,1],xyz[,2],xyz[,3])
 s <- interp(xyz[,1],xyz[,2],xyz[,3],  xo = seq(min(xyz[,1]), max(xyz[,1]), length = bin), yo = seq(min(xyz[,2]), max(xyz[,2]), length = bin), linear = TRUE,duplicate="mean")
 
-AvgLoss<-read.table("Averagek2Loss.dat")
-colnames(AvgLoss)<-c("Avgk1", "Avgk2", "Stdk2", "AvgLoss", "StdLoss")
+#AvgLoss<-read.table("Averagek2Loss.dat")
+#colnames(AvgLoss)<-c("Avgk1", "Avgk2", "Stdk2", "AvgLoss", "StdLoss")
 
-miy <- min(AvgLoss[,2]-AvgLoss[,3]-1)
-may <- max(AvgLoss[,2]+AvgLoss[,3]+1)
+#miy <- min(AvgLoss[,2]-AvgLoss[,3]-1)
+#may <- max(AvgLoss[,2]+AvgLoss[,3]+1)
 
 cbbPalette <- c("#D55E00", "#56B4E9", "#009E73", "#F0E442")
 
@@ -35,7 +35,7 @@ gpl1 <- ggplot() +
         #scale_fill_gradient(low = "#F70000", high = "#F7DE00",limits=c(0,0.2), guide = guide_legend(keyheight = 3)) +        
         stat_contour(data=kriged$map,aes(x=x,y=y,z=z)) +
         geom_line(dat=Tline,aes(x=xline,y=yline),  colour="white", size=3.0, linetype="dotted") +
-        scale_x_continuous(expand=c(0.01,0), limits=c(min(kriged$map$x),45)) + 
+        scale_x_continuous(expand=c(0.01,0), limits=c(min(kriged$map$x),100)) + 
         scale_y_continuous(expand=c(0.01,0.01), limits=range(kriged$map$y)) +
         xlab(expression ( k[r["i,i+1"]] )) + 
         ylab(expression(k[theta])) +        

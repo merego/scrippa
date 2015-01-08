@@ -1,6 +1,6 @@
-# options(echo=TRUE) # if you want see commands in output file
-# args <- commandArgs(trailingOnly = TRUE)
-# print(args)
+ options(echo=TRUE) # if you want see commands in output file
+ args <- commandArgs(trailingOnly = TRUE)
+ print(args)
 
 
 lappend <- function (lst, ...){
@@ -39,16 +39,16 @@ library("ggplot2")
 library("gridExtra")
 
 
-# # SET SYSTEM PARAMs
-# if (length(args)<3) {
-#  stop("Usage : MakePLOSFig IBI MC Alpha")
-# }
-# IBI <- as.logical(args[1])
-# MC <- as.logical(args[2])
-# Alpha <- as.logical(args[3])
-IBI<-TRUE
-MC<-FALSE
-Alpha<-TRUE
+ # SET SYSTEM PARAMs
+ if (length(args)<3) {
+  stop("Usage : MakePLOSFig IBI MC Alpha")
+ }
+ IBI <- as.logical(args[1])
+ MC <- as.logical(args[2])
+ Alpha <- as.logical(args[3])
+#IBI<-TRUE
+#MC<-FALSE
+#Alpha<-FALSE
 
 
 # Distribution in the same order than in Main.XML
@@ -84,8 +84,8 @@ if (MC&&IBI) {
 
 
 if (Alpha) { 
-  #potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
-  potlist<-c("null","r12","theta","vdw")  
+  potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
+  #potlist<-c("null","r12","theta","vdw")  
   #potlist<-c("null","r12","vdw")  
 } else {
   potlist<-c("null","r12","r13","theta","phi","vdw")  
@@ -119,10 +119,13 @@ for (ipot in 1:NumberOfPotentials) {
       BestMCDistrib[,1] <- BestMCDistrib[,1]/pi*180.0
      }
    }
-   refDistrib.spl <- spline(refDistrib[,1],refDistrib[,2]/(sum(refDistrib[,2])*diff(refDistrib[,1])[1]),n=2*length(refDistrib[,1]))
+   refDistrib.spl <- spline(refDistrib[,1],refDistrib[,2],n=2*length(refDistrib[,1]))
+   refDistrib.spl$y <- refDistrib.spl$y/(sum(refDistrib.spl$y)*diff(refDistrib.spl$x)[1])
+   #refDistrib.spl$y <- refDistrib.spl$y/(max(refDistrib.spl$y))
    refDistribs <- lappend(refDistribs,refDistrib.spl)
    if (MC) {
     BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/(sum(BestMCDistrib[,2])*diff(BestMCDistrib[,1])[1]),n=2*length(BestMCDistrib[,1]))
+    #BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/(max(BestMCDistrib[,2])),n=2*length(BestMCDistrib[,1]))
     BestMCDistribs <- lappend(BestMCDistribs,BestMCDistrib.spl)
    } 
   }
@@ -173,15 +176,21 @@ for (ipot in 1:NumberOfPotentials) {
         if (status=="true") {
             if ((potlist[ipot]=="theta")||(potlist[ipot]=="phi")) {
              distrib[,1] <- distrib[,1]/pi*180.0    
-             Fitted[,1] <- Fitted[,1]/pi*180.0    
-             ToBeFitted[,1] <- ToBeFitted[,1]/pi*180.0
+             if(IBI) {
+               Fitted[,1] <- Fitted[,1]/pi*180.0    
+               ToBeFitted[,1] <- ToBeFitted[,1]/pi*180.0
+             }
             }
-          
-          distrib.spl <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
+          distrib[distrib[,1]<0,2]<-0 # remove <0 region
+          distrib.spl <- spline(distrib[,1],distrib[,2],n=2*length(distrib[,1]))
+          distrib.spl$y <- distrib.spl$y / (sum(distrib.spl$y)*diff(distrib.spl$x)[1])
+          #distrib.spl$y <- distrib.spl$y / (max(distrib.spl$y))
           distribs.spl <- lappend(distribs.spl,distrib.spl)
-          Fitted.spl <- spline(Fitted[,1],Fitted[,2],n=2*length(Fitted[,1]))
-          FittedPMFs <- lappend(FittedPMFs,Fitted.spl)    
-          ToBeFittedPMFs <- lappend(ToBeFittedPMFs,ToBeFitted)
+          if (IBI) {
+            Fitted.spl <- spline(Fitted[,1],Fitted[,2],n=2*length(Fitted[,1]))
+            FittedPMFs <- lappend(FittedPMFs,Fitted.spl)    
+            ToBeFittedPMFs <- lappend(ToBeFittedPMFs,ToBeFitted)
+          }
           #lineWidth <- 5.0        
           loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
           losses <- append(losses,loss)   
@@ -216,7 +225,7 @@ for (ipot in 1:NumberOfPotentials) {
 
 # dists and pot
 # DEBUG
-Debug <- TRUE
+Debug <- FALSE
 if (Debug) {
  ranges <- c()
  colfunc = colorRampPalette(c("white","black"))
@@ -242,11 +251,11 @@ if (Debug) {
           #axis.ticks.length = unit(0,"null"),
           #axis.ticks.margin = unit(0,"null")) +
  
-   ggpl1BASE <- ggplBASE + geom_line(aes(x=q,y=pref),size=2,colour="red") 
-   ggpl2BASE <- ggplBASE + geom_line(aes(x=q,y=uref),size=2,colour="red")
+   ggpl1BASE <- ggplBASE + geom_point(aes(x=q,y=pref),size=2,colour="orange") 
+   ggpl2BASE <- ggplBASE #+ geom_line(aes(x=q,y=uref),size=2,colour="red")
 
    last <- length(DistribALLSpl[[ipot]]$dists)  
-   last <- 20
+   last <- 100
    nplots <- 10
    nblocks <- last/nplots 
    
@@ -268,8 +277,8 @@ if (Debug) {
        if (potlist[ipotindex[ipot]]=="r12") {
          ranges[1] <- 5.0
          ranges[2] <- 6.0
-         ranges[3] <- -3.0
-         ranges[4] <- 3.0         
+         ranges[3] <- -2.0
+         ranges[4] <- 4.0         
        } else  if (potlist[ipotindex[ipot]]=="r13") {
          ranges[1] <- 4.0
          ranges[2] <- 6.0
@@ -335,12 +344,16 @@ if (Debug) {
        scale_y_continuous(name="p") 
      xlabel<-ranges[2]-ranges[1]/100*10
      ylabel<-ranges[4]-ranges[2]/100*5
-     ggpl2 <- ggpl2BASE + geom_line(data=dist,aes(x=q,y=u),size=2) +        
-       geom_line(data=ToBeFitted,aes(x=V1,y=V2),lty=1,colour="yellow",size=2) + 
+     ggpl2 <- ggpl2BASE + geom_line(data=ToBeFitted,aes(x=V1,y=V2),lty=1,colour="black",size=2) +  # current
+       geom_line(data=ToBeFitted,aes(x=V1,y=V3),lty=1,colour="blue",size=1) + # prev
+       geom_line(data=ToBeFitted,aes(x=V1,y=V4),lty=2,colour="black",size=1) + # dbi
+       geom_line(data=ToBeFitted,aes(x=V1,y=V5),lty=1,colour="yellow",size=2) + # sum
+       geom_point(data=ToBeFitted,aes(x=V1,y=V6),colour="orange",size=2) + # reference
        geom_line(data=Fitted,aes(x=x,y=y),lty=2,colour="green",size=2) +        
        scale_x_continuous(limits=c(ranges[1],ranges[2])) + 
        scale_y_continuous(name="u",limits=c(ranges[3],ranges[4])) +
        annotate("text",x=xlabel,y=ylabel,label=iterval) 
+#geom_line(data=dist,aes(x=q,y=u),size=2)     
      
      plotlist <-lappend(plotlist,ggpl1)
      plotlist <-lappend(plotlist,ggpl2)
@@ -445,7 +458,15 @@ for (ipot in 1:length(DistribALLSpl)) {
     distrib <- BestMCDistribs[[ipot]]
     lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)     
   } else {  
-    distrib <- DistribALLSpl[[ipot]]$dists[[last-1]]
+   if (MCIBI) {
+     if (potlist[ipotindex[ipot]]=="theta") {
+       distrib <- DistribALLSpl[[ipot]]$dists[[last]] 
+     } else if (potlist[ipotindex[ipot]]=="r13") {
+       distrib <- DistribALLSpl[[ipot]]$dists[[last-step]] 
+     }
+   } else {
+     distrib <- DistribALLSpl[[ipot]]$dists[[last-1]] 
+   }
     lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)         
   }
   
