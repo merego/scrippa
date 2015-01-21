@@ -73,12 +73,13 @@ library("fields")
 library("MASS")
 require(gridExtra)
 
-plotphipsi <- TRUE
-plotdists <- TRUE
+plotphipsi <- FALSE
+plotdists <- FALSE
 plotrmsd <- TRUE
 halpha<-FALSE
 
 # Load Trajectory
+# loadtraj(type)
 his <- read.pdb("HISo.pdb",multi=TRUE)
 ns_step <- 1 # number of ns per frame
 
@@ -90,7 +91,6 @@ x <- c(1:Nsteps) * ns_step
 
 
 
-
 if (plotphipsi) {
   
   
@@ -98,7 +98,7 @@ if (plotphipsi) {
    Allpsi <- vector()
    AllphiFilename <- ("AllAtomTraj/PDBs/Allphi.dat")
    AllpsiFilename <- ("AllAtomTraj/PDBs/Allpsi.dat")
-   recompute <- TRUE
+   recompute <- FALSE
    if (recompute) {
      for (index in 1:2000) {
        filename=paste("AllAtomTraj/PDBs/h",sprintf("%03d",index),".pdb",sep="")
@@ -232,7 +232,7 @@ if (plotrmsd) {
 # }
 
  # RMSD Matrix
- recomputeClusters<-TRUE
+ recomputeClusters<-FALSE
  if (recomputeClusters) {
    vRMSD <- vector()
    for (index in 1:Nsteps) {

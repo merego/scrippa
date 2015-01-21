@@ -51,6 +51,7 @@ library("gridExtra")
 #Alpha<-FALSE
 
 
+
 # Distribution in the same order than in Main.XML
 #DistributionsType <- list("r13","")
 # Load Best iteration MC
@@ -101,6 +102,8 @@ bOptimize <- vector()
 refDistribs <- list()
 BestMCDistribs <- list()
 ipotindex <- vector()
+# Giulia distributions
+GiuliaDistribs <- list()
 # Load ref distributions and bOptimize vector
 for (ipot in 1:NumberOfPotentials) {
   TmpDoc0 <- xmlDoc(src0[[ipot]])
@@ -109,20 +112,26 @@ for (ipot in 1:NumberOfPotentials) {
    ipotindex <- append(ipotindex,ipot)
    filename <- paste('INPUT/Param',ipot-1,'.dat',sep="")
    refDistrib <- as.data.frame(read.table(filename))
+   filename <- paste('GiuliaDistribs/Param',ipot-1,'.dat',sep="")
+   GiuliaDistrib <- as.data.frame(read.table(filename))
    if (MC) {
     filename <- paste(BestIteration,'/Param',ipot-1,'.dat',sep="")
     BestMCDistrib <- as.data.frame(read.table(filename))
    } 
    if ((potlist[ipot]=="theta")||(potlist[ipot]=="phi")) {
      refDistrib[,1] <- refDistrib[,1]/pi*180.0
+     GiuliaDistrib[,1] <- GiuliaDistrib[,1]/pi*180.0
      if (MC) {
       BestMCDistrib[,1] <- BestMCDistrib[,1]/pi*180.0
      }
    }
    refDistrib.spl <- spline(refDistrib[,1],refDistrib[,2],n=2*length(refDistrib[,1]))
    refDistrib.spl$y <- refDistrib.spl$y/(sum(refDistrib.spl$y)*diff(refDistrib.spl$x)[1])
+   GiuliaDistrib.spl <- spline(GiuliaDistrib[,1],GiuliaDistrib[,2],n=2*length(GiuliaDistrib[,1]))
+   GiuliaDistrib.spl$y <- GiuliaDistrib.spl$y/(sum(GiuliaDistrib.spl$y)*diff(GiuliaDistrib.spl$x)[1])
    #refDistrib.spl$y <- refDistrib.spl$y/(max(refDistrib.spl$y))
    refDistribs <- lappend(refDistribs,refDistrib.spl)
+   GiuliaDistribs <- lappend(GiuliaDistribs,GiuliaDistrib.spl)
    if (MC) {
     BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/(sum(BestMCDistrib[,2])*diff(BestMCDistrib[,1])[1]),n=2*length(BestMCDistrib[,1]))
     #BestMCDistrib.spl <- spline(BestMCDistrib[,1],BestMCDistrib[,2]/(max(BestMCDistrib[,2])),n=2*length(BestMCDistrib[,1]))
@@ -419,16 +428,18 @@ for (ipot in 1:length(DistribALLSpl)) {
   postscript(filename,height = 5, width=10)
   par(mar=c(7,5,1,1),mgp=c(5,2,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
   refDistrib <- refDistribs[[ipot]]
+  GiuliaDistrib <- GiuliaDistribs[[ipot]]
 
   last <- length(DistribALLSpl[[ipot]]$dists)
   step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
-  # Find max y
+  # Find max y among all distributiobs (simulations, reference, and giulia's distrib)
   maxyv<-vector()
-  maxyv[1]<-max(refDistrib$y)
+  maxyv[1]<-max(refDistrib$y) # max from reference
   for (i in seq(1,last,by=step) ) {
     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-    maxyv[i+1]<-max(distrib$y)
-  }
+    maxyv[i+1]<-max(distrib$y) # max from sim distrib
+  }  
+  maxyv[i+1]<-max(GiuliaDistrib$y) # max from giulia distribs
   if (MC) {
     maxy<-max(maxyv,na.rm=TRUE)
   } else {
@@ -469,6 +480,10 @@ for (ipot in 1:length(DistribALLSpl)) {
    }
     lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)         
   }
+  # Giulia Distributions
+  distrib <- GiuliaDistribs[[ipot]]
+  lines(distrib$x,distrib$y,type="l",lty=5,col=cbbPalette[5],lwd=10.0)     
+
   
   dev.off()
 }
