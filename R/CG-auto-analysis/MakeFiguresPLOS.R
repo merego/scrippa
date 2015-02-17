@@ -616,20 +616,6 @@ if (MC) {
   }  
 }
 
-# Do the first plot
-#if (MC) { 
-#  if (Alpha)
-#    maxy <- maxy + 4.0
-#  else
-#    maxy <- maxy + 4.0
-#  plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='', xlim=c(minx,maxx), ylim=c(miny,maxy), cex.axis=3.0, cex.lab=3.0) # MC  
-#}else{
-#  if (Alpha) {
-#    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
-#  } else {
-#    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+1,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
-#  }
-#}
     miny<-0
     maxy<-5
     plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
