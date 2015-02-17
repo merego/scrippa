@@ -1,7 +1,14 @@
- options(echo=TRUE) # if you want see commands in output file
- args <- commandArgs(trailingOnly = TRUE)
- print(args)
-
+#  options(echo=TRUE) # if you want see commands in output file
+#  args <- commandArgs(trailingOnly = TRUE)
+#  print(args)
+library("XML") # required for XML parsing
+library("gtools") # required for mixedsort
+library("lattice") # required for levelplot
+library("xtable") # required for latex output
+library("fields") # required for plot colorscale
+#library("corrplot") # 
+library("ggplot2")
+library("gridExtra")
 
 lappend <- function (lst, ...){
   lst <- c(lst, list(...))
@@ -28,44 +35,22 @@ Rk <-   1.9858775e-3 # kcal mol^-1 K^-1
 Temp <- 300 # K
 
 
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-library("XML") # required for XML parsing
-library("gtools") # required for mixedsort
-library("lattice") # required for levelplot
-library("xtable") # required for latex output
-library("fields") # required for plot colorscale
-library("corrplot") # 
-library("ggplot2")
-library("gridExtra")
-
-
- cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
- # SET SYSTEM PARAMs
- if (length(args)<3) {
-  stop("Usage : MakePLOSFig IBI MC Alpha")
- }
- IBI <- as.logical(args[1])
- MC <- as.logical(args[2])
- Alpha <- as.logical(args[3])
-#IBI<-FALSE
-#MC<-TRUE
-#Alpha<-TRUE
-
-StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",IBI,"-",MC,"-",Alpha,"-DATA.RData",sep="")
-   
-   MCIBI<-FALSE
-   if (MC&&IBI) {
-     MCIBI<-TRUE
-     MC<-FALSE
-     IBI<-TRUE
-   }
-   print(IBI)
-   print(MC)
-   print(Alpha)
-   print(MCIBI)
-
-
+# Palette many classes
+c25 <- c("dodgerblue2","#E31A1C", # red
+         "green4",
+         "#6A3D9A", # purple
+         "#FF7F00", # orange
+         "black","gold1",
+         "skyblue2","#FB9A99", # lt pink
+         "palegreen2",
+         "#CAB2D6", # lt purple
+         "#FDBF6F", # lt orange
+         "gray70", "khaki2",
+         "maroon","orchid1","deeppink1","blue1","steelblue4",
+         "darkturquoise","green1","yellow4","yellow3",
+         "darkorange4","brown")
 
 LoadData <- function() {
 
@@ -109,6 +94,7 @@ LoadData <- function() {
    bOptimize <- vector()
    refDistribs <- list()
    BestMCDistribs <- list()
+   BestMCLoss <- vector()
    ipotindex <- vector()
    # Giulia distributions
    GiuliaDistribs <- list()
@@ -248,6 +234,38 @@ LoadData <- function() {
 #######################################################
 
 
+
+#  # SET SYSTEM PARAMs
+#  if (length(args)<3) {
+#   stop("Usage : MakePLOSFig IBI MC Alpha")
+#  }
+#  IBI <- as.logical(args[1])
+#  MC <- as.logical(args[2])
+#  Alpha <- as.logical(args[3])
+IBI<-FALSE
+MC<-TRUE
+Alpha<-FALSE
+
+IBIn <- ""
+MCn <- ""
+Type <- "310"
+if (IBI) IBIn <- "IBI"
+if (MC) MCn <- "MC"
+if (Alpha) Type <- "Alpha"
+
+StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",IBI,"-",MC,"-",Alpha,"-DATA.RData",sep="")
+
+MCIBI<-FALSE
+if (MC&&IBI) {
+  MCIBI<-TRUE
+  MC<-FALSE
+  IBI<-TRUE
+}
+print(IBI)
+print(MC)
+print(Alpha)
+print(MCIBI)
+
 cat(StoredData,"\n")
 reloadXML<-FALSE
 if (reloadXML) {
@@ -256,6 +274,17 @@ if (reloadXML) {
 } else {
    load(StoredData)
 }
+
+# Distributions
+
+# Loss Function
+
+# Radar Plot
+
+
+
+
+#  2. Figures about distributions
 
 DistribALLSpl <- DATA$DistribALLSpl
 AllLossFrame <- DATA$AllLossFrame
@@ -268,37 +297,38 @@ MatrixAllParams <- DATA$MatrixAllParams
 ipotOpti <- DATA$ipotOpti
 ipotNparams <- DATA$ipotNparams
 
-#  2. Figures about distributions
-colfunc = colorRampPalette(c("white","black"))
-reflist<-list()
+thm <- theme(panel.background = element_rect(fill = 'white'),
+            panel.border = element_rect(colour = "black", fill=NA, size=3),
+            axis.ticks.x = element_line(size=6.0, colour="black"),
+            axis.title.x = element_blank(),
+            axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
+            axis.ticks.y = element_blank(),
+            axis.text.y  = element_blank(),
+            axis.title.y = element_blank(),
+            plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+            legend.title  = element_blank(),
+            legend.text = element_blank(),
+            legend.position = "none")
+
 for (ipot in 1:length(DistribALLSpl)) {
-  #par(fig=c(0.0,1.0,0.0,1.0),mar=c(8,8,1,2),mgp=c(1.0,1.4,0.0),oma=c(0.1,0.1,0.1,0.1),new=FALSE)
   NaccIter <- length(DistribALLSpl[[ipot]]$losses)
-  loss <- DistribALLSpl[[ipot]]$losses
-  SortLoss <- sort(loss,index.return=TRUE)
-  #if (IBI) {
-  #  SortLoss$ix<-c(length(loss):1)
-  #}
-  colors <- colfunc(NaccIter)
-  #lineWidth<-5.0/(xx^0.15)
-  lineWidth<-seq(1.0,7.0,length.out = NaccIter )
   ranges <- c()
   if (Alpha) {
    if (potlist[ipotindex[ipot]]=="r12") {
-    ranges[1] <- 4.0
-    ranges[2] <- 8.0
+    ranges[1] <- 4.5
+    ranges[2] <- 6.5
    } else if (potlist[ipotindex[ipot]]=="r13") {
     ranges[1] <- 4.0
-    ranges[2] <- 8.0
+    ranges[2] <- 6.5
    } else if (potlist[ipotindex[ipot]]=="r14") {
-    ranges[1] <- 4.0
+    ranges[1] <- 5.0
     ranges[2] <- 8.0
    } else if (potlist[ipotindex[ipot]]=="theta") {
-    ranges[1] <- 60.0
-    ranges[2] <- 120.0
+    ranges[1] <- 70.0
+    ranges[2] <- 110.0
    } else if (potlist[ipotindex[ipot]]=="phi") {
     ranges[1] <- 20.0
-    ranges[2] <- 120.0
+    ranges[2] <- 80.0
    }  
   } else {
    if (potlist[ipotindex[ipot]]=="r12") {
@@ -315,152 +345,147 @@ for (ipot in 1:length(DistribALLSpl)) {
       ranges[2] <- 120.0
    }         
   }  
-  
-  filename <- paste("FigForPaper/Param",ipotindex[ipot]-1,".eps",sep="")
-  #tiff(filename, width = 1200, height = 1200, units = 'px', compression = c("none") )
-  postscript(filename,height = 5, width=10)
-  par(mar=c(7,5,1,1),mgp=c(5,2,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
-  refDistrib <- refDistribs[[ipot]]
-  GiuliaDistrib <- GiuliaDistribs[[ipot]]
-
+   
   last <- length(DistribALLSpl[[ipot]]$dists)
   step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
-  # Find max y among all distributiobs (simulations, reference, and giulia's distrib)
-  maxyv<-vector()
-  maxyv[1]<-max(refDistrib$y) # max from reference
-  for (i in seq(1,last,by=step) ) {
+  # Reshape into data frame
+  DistFrame <- data.frame()  
+  for (i in seq(1,last,by=step) ) {    
     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-    maxyv[i+1]<-max(distrib$y) # max from sim distrib
-  }  
-  maxyv[i+1]<-max(GiuliaDistrib$y) # max from giulia distribs
-  if (MC) {
-    maxy<-max(maxyv,na.rm=TRUE)
-  } else {
-    if (Alpha)
-      maxy<-median(maxyv,na.rm=TRUE) + 0.28*median(maxyv,na.rm=TRUE)
-    else
-      maxy<-max(maxyv,na.rm=TRUE)
+    mm <- matrix(0,nrow=length(distrib$x),ncol=3)
+    mm[,1] <- distrib$x
+    mm[,2] <- distrib$y
+    mm[,3] <- rep(i,length(distrib$x))
+    DistFrame <- rbind(DistFrame, mm)
   }
-  if (MCIBI) {
-    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=cbbPalette[7],lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,maxy), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE) # MCSA-IBI
-    axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
-    #axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=3.0, cex.lab=2.2)  
-  } else {
-    plot(refDistrib$x,refDistrib$y,type="l",lty=2,col=cbbPalette[7],lwd=5.0, xlab="", ylab="", xlim=ranges, ylim=c(0,maxy), cex.axis=3.4, cex.lab=3.5, frame=TRUE, axes=FALSE)
-    #axis(side = 2, tick = TRUE, at=c(0.5,1.0), font=2, cex.axis=3.0, cex.lab=2.2)  
-  }
-  for (i in seq(1,last,by=step) ) {
-    distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-    #lineWidth <- lineWidth - 3.0/NaccIter
-    #lines(distrib$x,distrib$y,col=colors[SortLoss$ix[i]],lwd=lineWidth[SortLoss$ix[i]])
-    lines(distrib$x,distrib$y,col=colors[i],lwd=lineWidth[i])
-  } # End iteration loop for distributions
-  # Plot in red the reference one
-  lines(refDistrib$x,refDistrib$y,type="l",lty=2,col=cbbPalette[7],lwd=7.0)
-  # Plot in green the last one
-  if (MC)  {   
-    distrib <- BestMCDistribs[[ipot]]
-    lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)     
-  } else {  
-   if (MCIBI) {
-     if (potlist[ipotindex[ipot]]=="theta") {
-       distrib <- DistribALLSpl[[ipot]]$dists[[last]] 
-     } else if (potlist[ipotindex[ipot]]=="r13") {
-       distrib <- DistribALLSpl[[ipot]]$dists[[last-step]] 
-     }
-   } else {
-     distrib <- DistribALLSpl[[ipot]]$dists[[last-1]] 
-   }
-    lines(distrib$x,distrib$y,type="l",lty=4,col=cbbPalette[4],lwd=7.0)         
-  }
-  # Giulia Distributions
-  distrib <- GiuliaDistribs[[ipot]]
-  lines(distrib$x,distrib$y,type="l",lty=5,col=cbbPalette[5],lwd=10.0)     
-
+  colnames(DistFrame)<-c("x","y","run")
   
-  dev.off()
+  # Referece
+  refDistrib <- data.frame(x=refDistribs[[ipot]]$x,y=refDistribs[[ipot]]$y)
+  # Gulia
+  GiuliaDistrib <- data.frame(x=GiuliaDistribs[[ipot]]$x,y=GiuliaDistribs[[ipot]]$y)
+  # Bestone
+  if (MC)  {   
+    BestDistrib <- data.frame(x=BestMCDistribs[[ipot]]$x,y=BestMCDistribs[[ipot]]$y)    
+    BestFrame <- 100
+  } else {  
+    if (MCIBI) {
+      if (potlist[ipotindex[ipot]]=="theta") {
+        BestFrame <- last
+        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
+      } else if (potlist[ipotindex[ipot]]=="r13") {
+        BestFrame <- last-step
+        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
+      }
+      BestFrame <- last
+      BestDistrib <- data.frame(x= DistribALLSpl[[BestFrame]]$dists[[last]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
+    } else {
+      BestFrame <- last - 1
+      BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)             
+    }    
+  }
+  
+
+ if (MCIBI) {thm <- thm }
+ else {thm <- thm + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())}
+  
+  plt <- ggplot(data=DistFrame,aes(x,y,group=run)) +   
+    geom_line(aes(alpha=run^3),size=8,color=c25[ipot]) + 
+    geom_line(data=refDistrib,aes(x,y),size=8,color="black") +
+    geom_line(data=GiuliaDistrib,aes(x,y),size=8,color=c25[7],linetype=2) +
+    geom_point(data=BestDistrib,aes(x,y),size=9,color="black") +
+    geom_point(data=BestDistrib,aes(x,y),size=7,color=c25[10]) +
+    xlim(ranges) + 
+    thm
+
+    filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Param",ipotindex[ipot]-1,".png",sep="")    
+    png(filename,width=2000,bg="transparent")
+    print(plt)
+    dev.off()
 }
 
 
 
-# 5. Figures about Loss function
-filename <- paste("FigForPaper/LossFunction.eps")
-postscript(filename, height=5, width=10)
-par(mar=c(7,8,2,1),mgp=c(4,1.5,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
-
-# Find x-y ranges Form MC only
-#if (MC) {
+# # 5. Figures about Loss function
+# filename <- paste("FigForPaper/LossFunction.eps")
+# postscript(filename, height=5, width=10)
+# par(mar=c(7,8,2,1),mgp=c(4,1.5,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
+# 
+# # Find x-y ranges Form MC only
+thm <- theme(panel.background = element_rect(fill = 'white'),
+             panel.border = element_rect(colour = "black", fill=NA, size=3),
+             axis.ticks.x = element_line(size=6.0, colour="black"),
+             axis.title.x = element_blank(),
+             axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
+             axis.ticks.y = element_line(size=6.0, colour="black"),
+             axis.text.y  = element_text(angle=0, vjust=0.0, size=70, face="bold", colour="black"),
+             axis.title.y = element_blank(),
+             plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+             legend.title  = element_blank(),
+             legend.text = element_blank(),
+             legend.position = "none",
+             panel.grid.major.y = element_line(colour="black",size=2),
+             panel.grid.major.x = element_blank())
   minx<-1
   maxx<-0
-  miny<-1000.0
-  maxy<-0.0
+  miny<-0
+  maxy<-5
+  LossFrame <- data.frame()   
+  if (MC) {   AvgLoss<-rowMeans(AllLossFrame,na.rm = TRUE) 
+  }  else { 
+    AvgLoss <- matrix(0,nrow=1,ncol=length(DistribALLSpl[[ipot]]$losses))
+    for (ipot in 1:length(DistribALLSpl)) {
+      AvgLoss <- AvgLoss + as.vector(DistribALLSpl[[ipot]]$losses)      
+    }
+    AvgLoss <- AvgLoss / 5.0
+  }
+  
+  Iter<-c(1:length(AvgLoss))
+  mm <- matrix(0,nrow=length(AvgLoss)-1,ncol=2)
+  mm[,1] <- t(Iter[-1])
+  mm[,2] <- t(AvgLoss[-1])
+  AvgLossFrame <- as.data.frame(mm)
+  colnames(AvgLossFrame) <- c("x","y")
   for (ipot in 1:length(DistribALLSpl)) {
     loss <- DistribALLSpl[[ipot]]$losses
     acceptedIterations <- DistribALLSpl[[ipot]]$acceptedIterations
     if (max(acceptedIterations,na.rm=TRUE)>maxx)
-      maxx <- max(acceptedIterations,na.rm=TRUE)
+      maxx <- max(acceptedIterations,na.rm=TRUE)  
     
-    if (max(loss,na.rm=TRUE)>maxy)
-      maxy <- max(loss,na.rm=TRUE) 
-    
-    if (min(loss,na.rm=TRUE)<miny)
-      miny <- min(loss,na.rm=TRUE)    
+    Acc <- DistribALLSpl[[ipot]]$acceptedIterations
+    loss <- DistribALLSpl[[ipot]]$losses
+    mm <- matrix(0,nrow=length(Acc),ncol=3)
+    mm[,1] <- Acc
+    mm[,2] <- loss + 1*ipot-1
+    mm[,3] <- rep(ipot,length(Acc))
+    LossFrame <- rbind(LossFrame, mm)    
   }  
-#}
-    miny<-0
-    maxy<-5
-    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
-axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
-#axis(side = 2, tick = TRUE, at=seq(miny,maxy), font=2, cex.axis=3.0, cex.lab=2.2, labels=TRUE)  
-axis(side = 2, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2, labels=TRUE)  
-mtext("Iteration", side=1, line=4, cex=3.5)
-#mtext("[a.u.]", side=2, line=1.0, cex=3.5)
-# Add overalys
-for (ipot in 1:length(DistribALLSpl)) {
-  
-    loss <- DistribALLSpl[[ipot]]$losses # MC
+  colnames(LossFrame)<-c("x","y","ipot")
 
+  plt <- ggplot(data=LossFrame,aes(x,y)) + 
+  geom_line(color="black",size=8) + 
+  geom_line(aes(color=factor(ipot)),size=6) + 
+  scale_color_manual(values = c25) +
+  facet_grid(ipot ~ .) +
+  thm
+
+  plt <- ggplot(data=LossFrame,aes(x,y,group=ipot)) + 
+  geom_line(color="black",size=8) + 
+  geom_line(aes(color=factor(ipot)),size=6) + 
+  scale_color_manual(values = c25) +
+  thm
+  filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Loss.png",sep="")    
+  png(filename,width=2000,bg="transparent")
+  print(plt)
+  dev.off()
+
+  plt <- ggplot(data=AvgLossFrame,aes(x,y)) + geom_line(size=8) + thm
+  filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-AVGLoss.png",sep="")    
+  png(filename,width=2000,bg="transparent")
+  print(plt)
+  dev.off()
   
-  Acc <- DistribALLSpl[[ipot]]$acceptedIterations
-  # Set colors and point type
-  if (ipot==1) {
-    color<-"steelblue2"
-    color<-cbbPalette[1]
-    ptype<-ipot+20
-  } else if (ipot==2) {
-    color<-"#d50000"
-    color<-cbbPalette[2]
-    ptype<-ipot+20
-  } else if (ipot==3) {
-    if (length(DistribALLSpl)==5) {
-      color<-"#00d254"
-      color<-cbbPalette[4]
-      ptype<-ipot+20
-    } else {
-      color<-"#e56cff"
-      color<-cbbPalette[3]
-      ptype<-ipot+21
-    }
-  } else if (ipot==4)  {
-    if (length(DistribALLSpl)==5) {
-      color<-"#e56cff"
-      color<-cbbPalette[3]
-      ptype<-ipot+20
-    } else {
-      color<-"#fffd43"
-      ptype<-ipot+21
-    }
-  } else if (ipot==5) {
-    color<-"#fffd43"
-    color<-cbbPalette[5]
-    ptype<-ipot+20
-  }
-  #points(Acc,loss+1*ipot-1, pch=ptype, bg=color, cex=2.0)
-  lines(Acc,loss+1*ipot-1, col="black", lwd=6.5)
-  lines(Acc,loss+1*ipot-1, col=color, lwd=5.0)  
-  #symbols(Acc,loss,circles=rep(0.5,length(Acc)),inches=1/8,ann=F,bg=color,add=TRUE)
-} # end ipot loop
-dev.off()
+
 
 
 # 6.  Best Parameters selection (For montecarlo only)
@@ -523,4 +548,15 @@ if (MC) {
 }
 
 
+# Radar plot
+mm <- matrix(0,nrow=1,ncol=length(DistribALLSpl))
+for (ipot in 1:length(DistribALLSpl)) {    
+  Acc <- DistribALLSpl[[ipot]]$acceptedIterations[BestFrame]
+  loss <- DistribALLSpl[[ipot]]$losses[BestFrame]  
+  mm[,ipot] <- loss  
+}  
+LossFrame <- as.data.frame(mm)    
+colnames(LossFrame)<-potlist[ipotindex]
+
+ggplot(L,aes(x=t,fill=x)) + geom_bar() + coord_polar()
 
