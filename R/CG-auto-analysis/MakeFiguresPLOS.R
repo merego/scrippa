@@ -615,31 +615,39 @@ if (MC) {
       miny <- min(loss,na.rm=TRUE)    
   }  
 }
+
 # Do the first plot
-if (MC) { 
-  if (Alpha)
-    maxy <- maxy + 4.0
-  else
-    maxy <- maxy + 3.5
-  plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='', xlim=c(minx,maxx), ylim=c(miny,maxy), cex.axis=3.0, cex.lab=3.0) # MC  
-}else{
-  if (Alpha) {
-    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+5.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
-  } else {
-    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+1,maxy+5.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
-  }
-}
+#if (MC) { 
+#  if (Alpha)
+#    maxy <- maxy + 4.0
+#  else
+#    maxy <- maxy + 4.0
+#  plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='', xlim=c(minx,maxx), ylim=c(miny,maxy), cex.axis=3.0, cex.lab=3.0) # MC  
+#}else{
+#  if (Alpha) {
+#    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+#  } else {
+#    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny+1,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
+#  }
+#}
+    miny<-0
+    maxy<-5
+    plot(1, type="n", axes=FALSE, frame=TRUE, xlab='', ylab='',  xlim=c(minx,maxx), ylim=c(miny,maxy+0.0), cex.axis=3.0, cex.lab=3.0) # IBI and OnlyIBI
 axis(side = 1, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2) 
-axis(side = 2, tick = FALSE, at=seq(miny,maxy), font=2, cex.axis=3.0, cex.lab=2.2, labels=FALSE)  
+#axis(side = 2, tick = TRUE, at=seq(miny,maxy), font=2, cex.axis=3.0, cex.lab=2.2, labels=TRUE)  
+axis(side = 2, tick = TRUE, font=2, cex.axis=3.0, cex.lab=2.2, labels=TRUE)  
 mtext("Iteration", side=1, line=4, cex=3.5)
 #mtext("[a.u.]", side=2, line=1.0, cex=3.5)
 # Add overalys
 for (ipot in 1:length(DistribALLSpl)) {
   
-  if (MC) 
     loss <- DistribALLSpl[[ipot]]$losses # MC
-  else
-    loss <- mt.scaled[,ipot]+abs(miny) # IBI and OnlyIBI
+
+#  if (MC) 
+#    loss <- DistribALLSpl[[ipot]]$losses # MC
+#  else
+#    loss <- mt.scaled[,ipot]+abs(miny) # IBI and OnlyIBI
+
 
   
   Acc <- DistribALLSpl[[ipot]]$acceptedIterations

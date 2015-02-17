@@ -35,12 +35,13 @@ gpl1 <- ggplot() +
         #scale_fill_gradient(low = "#F70000", high = "#F7DE00",limits=c(0,0.2), guide = guide_legend(keyheight = 3)) +        
         stat_contour(data=kriged$map,aes(x=x,y=y,z=z)) +
         geom_line(dat=Tline,aes(x=xline,y=yline),  colour="white", size=3.0, linetype="dotted") +
-        scale_x_continuous(expand=c(0.01,0), limits=c(min(kriged$map$x),100)) + 
-        scale_y_continuous(expand=c(0.01,0.01), limits=range(kriged$map$y)) +
+        scale_x_continuous(expand=c(0.01,-0.85), limits=c(min(kriged$map$x),45)) + 
+        scale_y_continuous(expand=c(0.001,0.01), limits=range(kriged$map$y)) +
         xlab(expression ( k[r["i,i+1"]] )) + 
         ylab(expression(k[theta])) +        
         theme(
         panel.background = element_rect(fill = 'white'),
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
         axis.title.x = element_text(face="bold", colour="black", size=30),
         axis.ticks.x = element_line(size=1.2, colour="black"),        
         axis.text.x  = element_text(angle=0, vjust=0.5, size=25, face="bold", colour="black"),
