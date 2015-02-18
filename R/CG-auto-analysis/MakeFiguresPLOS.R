@@ -10,6 +10,7 @@ library("fields") # required for plot colorscale
 #library("corrplot") # 
 library("ggplot2")
 library("gridExtra")
+library("reshape")
 
 lappend <- function (lst, ...){
   lst <- c(lst, list(...))
@@ -82,8 +83,6 @@ LoadData <- function() {
    
    if (Alpha) { 
      potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
-     #potlist<-c("null","r12","theta","vdw")  
-     #potlist<-c("null","r12","vdw")  
    } else {
      potlist<-c("null","r12","r13","theta","phi","vdw")  
    }
@@ -263,14 +262,14 @@ Bestone <- function(DATA,ipot,MC,IBI) {
     BestFrame <- DATA$BestFrame
   } else {  
     if (MCIBI) {
-      if (potlist[ipotindex[ipot]]=="theta") {
-        BestFrame <- last
-        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
-      } else if (potlist[ipotindex[ipot]]=="r13") {
-        BestFrame <- last-step
-        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
-      }
-      BestFrame <- last
+#      if (potlist[ipotindex[ipot]]=="theta") {
+#        BestFrame <- last
+#        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
+#      } else if (potlist[ipotindex[ipot]]=="r13") {
+#        BestFrame <- last-step
+#        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
+#      }
+      BestFrame <- last - 1
       BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[last]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
     } else {
       BestFrame <- last - 1
@@ -392,7 +391,18 @@ plotDistributions <- function(DATA) {
  
 #  5. Figures about Loss function
 plotLoss <- function(DATA) {
-thm <- theme(panel.background = element_rect(fill = 'white'),
+  DistribALLSpl <- DATA$DistribALLSpl
+  AllLossFrame <- DATA$AllLossFrame
+  potlist <- DATA$potlist
+  GiuliaDistribs <- DATA$GiuliaDistribs
+  BestMCDistribs <- DATA$BestMCDistribs
+  refDistribs <- DATA$refDistribs
+  ipotindex <- DATA$ipotindex
+  MatrixAllParams <- DATA$MatrixAllParams
+  ipotOpti <- DATA$ipotOpti
+  ipotNparams <- DATA$ipotNparams
+  
+  thm <- theme(panel.background = element_rect(fill = 'white'),
              panel.border = element_rect(colour = "black", fill=NA, size=3),
              axis.ticks.x = element_line(size=6.0, colour="black"),
              axis.title.x = element_blank(),
@@ -483,7 +493,7 @@ thm <- theme(panel.background = element_rect(fill = 'white'),
 #  reloadXML <- as.logical(args[4])
 IBI<-FALSE
 MC<-TRUE
-Alpha<-TRUE
+Alpha<-FALSE
 reloadXML <- FALSE
 
 IBIn <- ""
@@ -515,13 +525,29 @@ if (reloadXML) {
    # Loss Function
    plotLoss(DATA) 
    
-   # Radar Plot
-   # # Radar plot
-   # Bestone
-   systems <- list(A=c(FALSE,TRUE,TRUE,FALSE),B=c(TRUE,FALSE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha
-  
-   mm <- matrix(0,nrow=ipotOpti,ncol=4)
+   # Radar plot
+   systems <- list(A=c(TRUE,FALSE,TRUE,FALSE),B=c(FALSE,TRUE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha   IBI, MC, MCIBI
+   systems <- list(A=c(TRUE,FALSE,FALSE,FALSE),B=c(FALSE,TRUE,FALSE,FALSE),C=c(TRUE,TRUE,FALSE,FALSE)) #310   IBI, MC, MCIBI
+   
+#  radarplot(DATA,systems)
+   
+   thm <- theme(panel.background = element_rect(fill = 'white'),
+             panel.border = element_rect(colour = "black", fill=NA, size=3),
+             axis.ticks.x = element_line(size=6.0, colour="black"),
+             axis.title.x = element_blank(),
+             axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
+             axis.ticks.y = element_blank(),
+             axis.text.y  = element_blank(),
+             axis.title.y = element_blank(),
+             plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+             legend.title  = element_blank(),
+             legend.position = c(0.2,1),
+             legend.direction = "horizontal",
+             legend.text = element_text(angle=0, vjust=1., size=40, face="bold", colour="black"))
+
    isys <- 0
+   ipotOpti <- DATA$ipotOpti
+   mm <- matrix(0,nrow=ipotOpti,ncol=4) 
    for (sys in systems) {     
     StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",sys[1],"-",sys[2],"-",sys[3],"-DATA.RData",sep="")
     load(StoredData)
@@ -537,16 +563,19 @@ if (reloadXML) {
     ipotNparams <- DATA$ipotNparams
     
     isys <- isys + 1
-    BestOne <- Bestone(DATA,ipot,sys[2],sys[1])    
-    BestFrame <- BestOne$BestFrame    
+
     
-    if (sys[2]&&!sys[1]) {      
+    if (isys == 2) {      
       cat("MC")
+      BestOne <- Bestone(DATA,1,sys[2],sys[1])    
+      BestFrame <- BestOne$BestFrame    
       loss <- AllLossFrame[BestFrame,]
       mm[,isys] <- t(loss[ipotindex])
     } else {
       cat("MCIBI or IBI")
       for (ipot in c(1:length(DistribALLSpl))) {        
+        BestOne <- Bestone(DATA,1,sys[2],sys[1])    
+        BestFrame <- BestOne$BestFrame    
         mm[ipot,isys] <- DistribALLSpl[[ipot]]$losses[BestFrame]
       }
     }    
@@ -554,14 +583,19 @@ if (reloadXML) {
    
    LossFrame <- as.data.frame(mm)    
    LossFrame[,4]<-potlist[ipotindex]
-   colnames(LossFrame) <- c("MC","IBI","MCIBI","FF")
+   if (sys[4]) {    
+     labb<- c(expression(r["i,i+1"]), expression(r["i,i+2"]), expression(r["i,i+3"]), expression(theta), expression(phi))
+   } else {     
+     labb<- c(expression(r["i,i+1"]), expression(r["i,i+2"]),  expression(theta), expression(phi))     
+   }
+   colnames(LossFrame) <- c("IBI","MCSA","MCSA-IBI","FF")
    LossFrameM <- melt(LossFrame)
-   ggplot(LossFrameM,aes(x=FF,y=value,fill=variable)) + geom_bar(stat="identity") + coord_polar()
+   ggplot(LossFrameM,aes(x=FF,y=value,fill=variable)) + geom_bar(stat="identity",position="dodge") + scale_fill_manual(values = c25) + scale_x_discrete("F",labels=labb) + thm
+   
+   dev.off()
    
    # 
-   c(TRUE,TRUE,TRUE,FALSE) # MC 310
-   c(TRUE,TRUE,TRUE,FALSE) # IBI 310
-   c(TRUE,TRUE,TRUE,FALSE)  # MCIBI 310
+ 
 }
 
 
