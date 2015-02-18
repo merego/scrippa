@@ -1,6 +1,7 @@
 #  options(echo=TRUE) # if you want see commands in output file
 #  args <- commandArgs(trailingOnly = TRUE)
 #  print(args)
+
 library("XML") # required for XML parsing
 library("gtools") # required for mixedsort
 library("lattice") # required for levelplot
@@ -59,11 +60,12 @@ LoadData <- function() {
    # Distribution in the same order than in Main.XML
    #DistributionsType <- list("r13","")
    # Load Best iteration MC
-   if (MC) {
+   BestIterationN <- NA
+   if (MC || MCIBI) {
      BestMC <- xmlInternalTreeParse("OUTPUT/BestIteration_Output.xml");
      BestIterationN <- as.numeric(xpathApply(BestMC, "//c_run",xmlValue))+1;
-     BestIteration <- paste("OUTPUT/r",BestIterationN,sep="")
-     print(BestIteration);
+     BestIteration <- paste("OUTPUT/r",BestIterationN,sep="")     
+     print(BestIterationN);
    }
    
    
@@ -93,8 +95,7 @@ LoadData <- function() {
    NumberOfPotentials <- xmlSize(src0)
    bOptimize <- vector()
    refDistribs <- list()
-   BestMCDistribs <- list()
-   BestMCLoss <- vector()
+   BestMCDistribs <- list()  
    ipotindex <- vector()
    # Giulia distributions
    GiuliaDistribs <- list()
@@ -110,7 +111,7 @@ LoadData <- function() {
       GiuliaDistrib <- as.data.frame(read.table(filename))
       if (MC) {
        filename <- paste(BestIteration,'/Param',ipot-1,'.dat',sep="")
-       BestMCDistrib <- as.data.frame(read.table(filename))
+       BestMCDistrib <- as.data.frame(read.table(filename))      
       } 
       if ((potlist[ipot]=="theta")||(potlist[ipot]=="phi")) {
         refDistrib[,1] <- refDistrib[,1]/pi*180.0
@@ -227,147 +228,39 @@ LoadData <- function() {
    } # potentials loop
    
    
-   DATA <- list(AllLossFrame=AllLossFrame,DistribALLSpl=DistribALLSpl,potlist=potlist,GiuliaDistribs=GiuliaDistribs,BestMCDistribs=BestMCDistribs,ipotindex=ipotindex,refDistribs=refDistribs,MatrixAllParams=MatrixAllParams,ipotOpti=ipotOpti,ipotNparams=ipotNparams)
+   DATA <- list(AllLossFrame=AllLossFrame,DistribALLSpl=DistribALLSpl,potlist=potlist,GiuliaDistribs=GiuliaDistribs,BestMCDistribs=BestMCDistribs,ipotindex=ipotindex,refDistribs=refDistribs,MatrixAllParams=MatrixAllParams,ipotOpti=ipotOpti,ipotNparams=ipotNparams,BestFrame=BestIterationN)
    return(DATA)
 
 } # END load data function
-#######################################################
+ 
+ 
 
-
-
-#  # SET SYSTEM PARAMs
-#  if (length(args)<3) {
-#   stop("Usage : MakePLOSFig IBI MC Alpha")
-#  }
-#  IBI <- as.logical(args[1])
-#  MC <- as.logical(args[2])
-#  Alpha <- as.logical(args[3])
-IBI<-FALSE
-MC<-TRUE
-Alpha<-FALSE
-
-IBIn <- ""
-MCn <- ""
-Type <- "310"
-if (IBI) IBIn <- "IBI"
-if (MC) MCn <- "MC"
-if (Alpha) Type <- "Alpha"
-
-StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",IBI,"-",MC,"-",Alpha,"-DATA.RData",sep="")
-
-MCIBI<-FALSE
-if (MC&&IBI) {
-  MCIBI<-TRUE
-  MC<-FALSE
-  IBI<-TRUE
-}
-print(IBI)
-print(MC)
-print(Alpha)
-print(MCIBI)
-
-cat(StoredData,"\n")
-reloadXML<-FALSE
-if (reloadXML) {
-   DATA <- LoadData()
-   save(DATA,file=StoredData)
-} else {
-   load(StoredData)
-}
-
-# Distributions
-
-# Loss Function
-
-# Radar Plot
-
-
-
-
-#  2. Figures about distributions
-
-DistribALLSpl <- DATA$DistribALLSpl
-AllLossFrame <- DATA$AllLossFrame
-potlist <- DATA$potlist
-GiuliaDistribs <- DATA$GiuliaDistribs
-BestMCDistribs <- DATA$BestMCDistribs
-refDistribs <- DATA$refDistribs
-ipotindex <- DATA$ipotindex
-MatrixAllParams <- DATA$MatrixAllParams
-ipotOpti <- DATA$ipotOpti
-ipotNparams <- DATA$ipotNparams
-
-thm <- theme(panel.background = element_rect(fill = 'white'),
-            panel.border = element_rect(colour = "black", fill=NA, size=3),
-            axis.ticks.x = element_line(size=6.0, colour="black"),
-            axis.title.x = element_blank(),
-            axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
-            axis.ticks.y = element_blank(),
-            axis.text.y  = element_blank(),
-            axis.title.y = element_blank(),
-            plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
-            legend.title  = element_blank(),
-            legend.text = element_blank(),
-            legend.position = "none")
-
-for (ipot in 1:length(DistribALLSpl)) {
-  NaccIter <- length(DistribALLSpl[[ipot]]$losses)
-  ranges <- c()
-  if (Alpha) {
-   if (potlist[ipotindex[ipot]]=="r12") {
-    ranges[1] <- 4.5
-    ranges[2] <- 6.5
-   } else if (potlist[ipotindex[ipot]]=="r13") {
-    ranges[1] <- 4.0
-    ranges[2] <- 6.5
-   } else if (potlist[ipotindex[ipot]]=="r14") {
-    ranges[1] <- 5.0
-    ranges[2] <- 8.0
-   } else if (potlist[ipotindex[ipot]]=="theta") {
-    ranges[1] <- 70.0
-    ranges[2] <- 110.0
-   } else if (potlist[ipotindex[ipot]]=="phi") {
-    ranges[1] <- 20.0
-    ranges[2] <- 80.0
-   }  
-  } else {
-   if (potlist[ipotindex[ipot]]=="r12") {
-      ranges[1] <- 4.0
-      ranges[2] <- 8.0
-   } else if (potlist[ipotindex[ipot]]=="r13") {
-      ranges[1] <- 4.0
-      ranges[2] <- 8.0    
-   } else if (potlist[ipotindex[ipot]]=="theta") {
-      ranges[1] <- 60.0
-      ranges[2] <- 120.0
-   } else if (potlist[ipotindex[ipot]]=="phi") {
-      ranges[1] <- 20.0
-      ranges[2] <- 120.0
-   }         
+Bestone <- function(DATA,ipot,MC,IBI) {
+  MCIBI<-FALSE
+  if (MC&&IBI) {
+    MCIBI<-TRUE
+    MC<-FALSE
+    IBI<-TRUE
   }  
-   
+  print(MC)
+  print(IBI)
+  print(MCIBI)
+  DistribALLSpl <- DATA$DistribALLSpl
+  AllLossFrame <- DATA$AllLossFrame
+  potlist <- DATA$potlist
+  GiuliaDistribs <- DATA$GiuliaDistribs
+  BestMCDistribs <- DATA$BestMCDistribs
+  refDistribs <- DATA$refDistribs
+  ipotindex <- DATA$ipotindex
+  MatrixAllParams <- DATA$MatrixAllParams
+  ipotOpti <- DATA$ipotOpti
+  ipotNparams <- DATA$ipotNparams
   last <- length(DistribALLSpl[[ipot]]$dists)
   step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
-  # Reshape into data frame
-  DistFrame <- data.frame()  
-  for (i in seq(1,last,by=step) ) {    
-    distrib <- DistribALLSpl[[ipot]]$dists[[i]]
-    mm <- matrix(0,nrow=length(distrib$x),ncol=3)
-    mm[,1] <- distrib$x
-    mm[,2] <- distrib$y
-    mm[,3] <- rep(i,length(distrib$x))
-    DistFrame <- rbind(DistFrame, mm)
-  }
-  colnames(DistFrame)<-c("x","y","run")
-  
-  # Referece
-  refDistrib <- data.frame(x=refDistribs[[ipot]]$x,y=refDistribs[[ipot]]$y)
-  # Gulia
-  GiuliaDistrib <- data.frame(x=GiuliaDistribs[[ipot]]$x,y=GiuliaDistribs[[ipot]]$y)
-  # Bestone
+  cat(last)
   if (MC)  {   
     BestDistrib <- data.frame(x=BestMCDistribs[[ipot]]$x,y=BestMCDistribs[[ipot]]$y)    
-    BestFrame <- 100
+    BestFrame <- DATA$BestFrame
   } else {  
     if (MCIBI) {
       if (potlist[ipotindex[ipot]]=="theta") {
@@ -378,40 +271,127 @@ for (ipot in 1:length(DistribALLSpl)) {
         BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
       }
       BestFrame <- last
-      BestDistrib <- data.frame(x= DistribALLSpl[[BestFrame]]$dists[[last]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
+      BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[last]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
     } else {
       BestFrame <- last - 1
       BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)             
     }    
-  }
-  
+  }  
+  BestOne <- list(BestDistrib=BestDistrib, BestFrame=BestFrame)
+  return(BestOne)
+}
 
- if (MCIBI) {thm <- thm }
- else {thm <- thm + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())}
+#  2. Figures about distributions
+plotDistributions <- function(DATA) {
   
-  plt <- ggplot(data=DistFrame,aes(x,y,group=run)) +   
-    geom_line(aes(alpha=run^3),size=8,color=c25[ipot]) + 
-    geom_line(data=refDistrib,aes(x,y),size=8,color="black") +
-    geom_line(data=GiuliaDistrib,aes(x,y),size=8,color=c25[7],linetype=2) +
-    geom_point(data=BestDistrib,aes(x,y),size=9,color="black") +
-    geom_point(data=BestDistrib,aes(x,y),size=7,color=c25[10]) +
-    xlim(ranges) + 
-    thm
-
+  DistribALLSpl <- DATA$DistribALLSpl
+  AllLossFrame <- DATA$AllLossFrame
+  potlist <- DATA$potlist
+  GiuliaDistribs <- DATA$GiuliaDistribs
+  BestMCDistribs <- DATA$BestMCDistribs
+  refDistribs <- DATA$refDistribs
+  ipotindex <- DATA$ipotindex
+  MatrixAllParams <- DATA$MatrixAllParams
+  ipotOpti <- DATA$ipotOpti
+  ipotNparams <- DATA$ipotNparams
+  
+  thm <- theme(panel.background = element_rect(fill = 'white'),
+               panel.border = element_rect(colour = "black", fill=NA, size=3),
+               axis.ticks.x = element_line(size=6.0, colour="black"),
+               axis.title.x = element_blank(),
+               axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
+               axis.ticks.y = element_blank(),
+               axis.text.y  = element_blank(),
+               axis.title.y = element_blank(),
+               plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+               legend.title  = element_blank(),
+               legend.text = element_blank(),
+               legend.position = "none")
+  
+  for (ipot in 1:length(DistribALLSpl)) {
+    NaccIter <- length(DistribALLSpl[[ipot]]$losses)
+    ranges <- c()
+    if (Alpha) {
+      if (potlist[ipotindex[ipot]]=="r12") {
+        ranges[1] <- 4.5
+        ranges[2] <- 6.5
+      } else if (potlist[ipotindex[ipot]]=="r13") {
+        ranges[1] <- 4.0
+        ranges[2] <- 6.5
+      } else if (potlist[ipotindex[ipot]]=="r14") {
+        ranges[1] <- 5.0
+        ranges[2] <- 8.0
+      } else if (potlist[ipotindex[ipot]]=="theta") {
+        ranges[1] <- 70.0
+        ranges[2] <- 110.0
+      } else if (potlist[ipotindex[ipot]]=="phi") {
+        ranges[1] <- 20.0
+        ranges[2] <- 80.0
+      }  
+    } else {
+      if (potlist[ipotindex[ipot]]=="r12") {
+        ranges[1] <- 4.0
+        ranges[2] <- 8.0
+      } else if (potlist[ipotindex[ipot]]=="r13") {
+        ranges[1] <- 4.0
+        ranges[2] <- 8.0    
+      } else if (potlist[ipotindex[ipot]]=="theta") {
+        ranges[1] <- 60.0
+        ranges[2] <- 120.0
+      } else if (potlist[ipotindex[ipot]]=="phi") {
+        ranges[1] <- 20.0
+        ranges[2] <- 120.0
+      }         
+    }  
+    
+    last <- length(DistribALLSpl[[ipot]]$dists)
+    step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
+    # Reshape into data frame
+    DistFrame <- data.frame()  
+    for (i in seq(1,last,by=step) ) {    
+      distrib <- DistribALLSpl[[ipot]]$dists[[i]]
+      mm <- matrix(0,nrow=length(distrib$x),ncol=3)
+      mm[,1] <- distrib$x
+      mm[,2] <- distrib$y
+      mm[,3] <- rep(i,length(distrib$x))
+      DistFrame <- rbind(DistFrame, mm)
+    }
+    colnames(DistFrame)<-c("x","y","run")
+    
+    # Referece
+    refDistrib <- data.frame(x=refDistribs[[ipot]]$x,y=refDistribs[[ipot]]$y)
+    # Gulia
+    GiuliaDistrib <- data.frame(x=GiuliaDistribs[[ipot]]$x,y=GiuliaDistribs[[ipot]]$y)
+    # Bestone
+    BestOne <- Bestone(DATA,ipot,MC,IBI)
+    BestDistrib <- BestOne$BestDistrib
+    BestFrame <- BestOne$BestFrame    
+    
+    
+    if (MCIBI) {
+      thm <- thm 
+    } else {
+      thm <- thm + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+    }
+    
+    plt <- ggplot(data=DistFrame) +   
+      geom_line(aes(x,y,group=run,alpha=run),size=8,color=c25[ipot]) + 
+      geom_line(data=refDistrib,aes(x,y),size=8,color="black") +
+      geom_line(data=GiuliaDistrib,aes(x,y),size=8,color=c25[7],linetype=2) +
+      geom_point(data=BestDistrib,aes(x,y),size=9,color="black") +
+      geom_point(data=BestDistrib,aes(x,y),size=7,color=c25[10]) +
+      xlim(ranges) + 
+      thm
+    
     filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Param",ipotindex[ipot]-1,".png",sep="")    
     png(filename,width=2000,bg="transparent")
     print(plt)
     dev.off()
-}
-
-
-
-# # 5. Figures about Loss function
-# filename <- paste("FigForPaper/LossFunction.eps")
-# postscript(filename, height=5, width=10)
-# par(mar=c(7,8,2,1),mgp=c(4,1.5,0),oma=c(0.0,0.0,0.0,0.0),new=FALSE)
-# 
-# # Find x-y ranges Form MC only
+  }
+} # end plotDistributions
+ 
+#  5. Figures about Loss function
+plotLoss <- function(DATA) {
 thm <- theme(panel.background = element_rect(fill = 'white'),
              panel.border = element_rect(colour = "black", fill=NA, size=3),
              axis.ticks.x = element_line(size=6.0, colour="black"),
@@ -484,79 +464,167 @@ thm <- theme(panel.background = element_rect(fill = 'white'),
   png(filename,width=2000,bg="transparent")
   print(plt)
   dev.off()
-  
+} # end plotLoss
 
 
 
-# 6.  Best Parameters selection (For montecarlo only)
-if (MC) {
-  # Best params based on SqSum and Var
-  Vm <- vector()
-  SqSum <- vector()
-  VarM <- vector()
-  VarScaled <- vector()
-  for (run in 1:nrow(AllLossFrame)) {
-    SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
-    #if (length(OptimPotIndex)>1) 
-      VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
-    #else
-    #  VarScaled[run] <- 0.0
-  }
-  SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
-  #if (length(OptimPotIndex)>1) 
-    VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
-  Vm <- SqScaled + VarScaled
-  
-  # Sort 
-  #avgSort <- sort(AvgLoss,index.return=TRUE) 
-  avgSort <- sort(Vm,index.return=TRUE) 
-  SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(10,length(avgSort$ix))]-1,])
-  #s[,10] <- (s[,10]+3.14)*180/3.14
-  #s[,8] <- s[,8]*180/3.14
-  all_mean <- sapply(SortedParametersFrame,median)
-  all_quantiles <- sapply(SortedParametersFrame,quantile)
-  
-  SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
-  SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
-  SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
-  rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
-  rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
-  rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
-  # Save out latex table
-  caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
-  tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
-  filename <- "BestBasedOnAvgLoss_MCSA.tex"
-  print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
 
-  Nstart <- 1
-  for (i in 1:ipotOpti) { 
-    Nparams <- ipotNparams[i]
-    for (j in 1:Nparams) {
-      val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
-      cat("<parameter>",val,"</parameter>\n")
-    }
-    for (j in 1:Nparams) {
-      val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
-      cat("<parameter_min>",val,"</parameter_min>\n")
-    }
-    for (j in 1:Nparams) {
-      val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
-      cat("<parameter_max>",val,"</parameter_max>\n")
-    }
-    Nstart <- Nstart + Nparams
-  }
+#######################################################
+
+
+
+ # SET SYSTEM PARAMs
+#  if (length(args)<4) {
+#   stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
+#  }
+#  IBI <- as.logical(args[1])
+#  MC <- as.logical(args[2])
+#  Alpha <- as.logical(args[3])
+#  reloadXML <- as.logical(args[4])
+IBI<-FALSE
+MC<-TRUE
+Alpha<-TRUE
+reloadXML <- FALSE
+
+IBIn <- ""
+MCn <- ""
+Type <- "310"
+if (IBI) IBIn <- "IBI"
+if (MC) MCn <- "MC"
+if (Alpha) Type <- "Alpha"
+
+StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",IBI,"-",MC,"-",Alpha,"-DATA.RData",sep="")
+
+MCIBI<-FALSE
+if (MC&&IBI) {
+  MCIBI<-TRUE
+  MC<-FALSE
+  IBI<-TRUE
 }
 
 
-# Radar plot
-mm <- matrix(0,nrow=1,ncol=length(DistribALLSpl))
-for (ipot in 1:length(DistribALLSpl)) {    
-  Acc <- DistribALLSpl[[ipot]]$acceptedIterations[BestFrame]
-  loss <- DistribALLSpl[[ipot]]$losses[BestFrame]  
-  mm[,ipot] <- loss  
-}  
-LossFrame <- as.data.frame(mm)    
-colnames(LossFrame)<-potlist[ipotindex]
+cat(StoredData,"\n")
+if (reloadXML) {
+   DATA <- LoadData()
+   save(DATA,file=StoredData)
+} else {
+   load(StoredData)
+   # Distributions
+   plotDistributions(DATA)
+   
+   # Loss Function
+   plotLoss(DATA) 
+   
+   # Radar Plot
+   # # Radar plot
+   # Bestone
+   systems <- list(A=c(FALSE,TRUE,TRUE,FALSE),B=c(TRUE,FALSE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha
+  
+   mm <- matrix(0,nrow=ipotOpti,ncol=4)
+   isys <- 0
+   for (sys in systems) {     
+    StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",sys[1],"-",sys[2],"-",sys[3],"-DATA.RData",sep="")
+    load(StoredData)
+    DistribALLSpl <- DATA$DistribALLSpl
+    AllLossFrame <- DATA$AllLossFrame
+    potlist <- DATA$potlist
+    GiuliaDistribs <- DATA$GiuliaDistribs
+    BestMCDistribs <- DATA$BestMCDistribs
+    refDistribs <- DATA$refDistribs
+    ipotindex <- DATA$ipotindex
+    MatrixAllParams <- DATA$MatrixAllParams
+    ipotOpti <- DATA$ipotOpti
+    ipotNparams <- DATA$ipotNparams
+    
+    isys <- isys + 1
+    BestOne <- Bestone(DATA,ipot,sys[2],sys[1])    
+    BestFrame <- BestOne$BestFrame    
+    
+    if (sys[2]&&!sys[1]) {      
+      cat("MC")
+      loss <- AllLossFrame[BestFrame,]
+      mm[,isys] <- t(loss[ipotindex])
+    } else {
+      cat("MCIBI or IBI")
+      for (ipot in c(1:length(DistribALLSpl))) {        
+        mm[ipot,isys] <- DistribALLSpl[[ipot]]$losses[BestFrame]
+      }
+    }    
+   }
+   
+   LossFrame <- as.data.frame(mm)    
+   LossFrame[,4]<-potlist[ipotindex]
+   colnames(LossFrame) <- c("MC","IBI","MCIBI","FF")
+   LossFrameM <- melt(LossFrame)
+   ggplot(LossFrameM,aes(x=FF,y=value,fill=variable)) + geom_bar(stat="identity") + coord_polar()
+   
+   # 
+   c(TRUE,TRUE,TRUE,FALSE) # MC 310
+   c(TRUE,TRUE,TRUE,FALSE) # IBI 310
+   c(TRUE,TRUE,TRUE,FALSE)  # MCIBI 310
+}
 
-ggplot(L,aes(x=t,fill=x)) + geom_bar() + coord_polar()
+
+
+
+# # 6.  Best Parameters selection (For montecarlo only)
+# if (MC) {
+#   # Best params based on SqSum and Var
+#   Vm <- vector()
+#   SqSum <- vector()
+#   VarM <- vector()
+#   VarScaled <- vector()
+#   for (run in 1:nrow(AllLossFrame)) {
+#     SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
+#     #if (length(OptimPotIndex)>1) 
+#       VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
+#     #else
+#     #  VarScaled[run] <- 0.0
+#   }
+#   SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
+#   #if (length(OptimPotIndex)>1) 
+#     VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
+#   Vm <- SqScaled + VarScaled
+#   
+#   # Sort 
+#   #avgSort <- sort(AvgLoss,index.return=TRUE) 
+#   avgSort <- sort(Vm,index.return=TRUE) 
+#   SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(10,length(avgSort$ix))]-1,])
+#   #s[,10] <- (s[,10]+3.14)*180/3.14
+#   #s[,8] <- s[,8]*180/3.14
+#   all_mean <- sapply(SortedParametersFrame,median)
+#   all_quantiles <- sapply(SortedParametersFrame,quantile)
+#   
+#   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
+#   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
+#   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
+#   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
+#   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
+#   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
+#   # Save out latex table
+#   caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
+#   tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
+#   filename <- "BestBasedOnAvgLoss_MCSA.tex"
+#   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
+# 
+#   Nstart <- 1
+#   for (i in 1:ipotOpti) { 
+#     Nparams <- ipotNparams[i]
+#     for (j in 1:Nparams) {
+#       val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
+#       cat("<parameter>",val,"</parameter>\n")
+#     }
+#     for (j in 1:Nparams) {
+#       val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
+#       cat("<parameter_min>",val,"</parameter_min>\n")
+#     }
+#     for (j in 1:Nparams) {
+#       val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
+#       cat("<parameter_max>",val,"</parameter_max>\n")
+#     }
+#     Nstart <- Nstart + Nparams
+#   }
+# }
+# 
+# 
 
