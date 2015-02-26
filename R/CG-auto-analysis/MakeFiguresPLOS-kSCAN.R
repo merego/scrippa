@@ -37,7 +37,7 @@ gpl1 <- ggplot() +
         geom_line(dat=Tline,aes(x=xline,y=yline),  colour="white", size=3.0, linetype="dotted") +
         scale_x_continuous(expand=c(0.01,-0.85), limits=c(min(kriged$map$x),45)) + 
         scale_y_continuous(expand=c(0.001,0.01), limits=range(kriged$map$y)) +
-        xlab(expression ( k[r["i,i+1"]] )) + 
+        xlab(expression ( k[r["i,i+2"]] )) + 
         ylab(expression(k[theta])) +        
         theme(
         panel.background = element_rect(fill = 'white'),

@@ -1,6 +1,6 @@
-#  options(echo=TRUE) # if you want see commands in output file
-#  args <- commandArgs(trailingOnly = TRUE)
-#  print(args)
+ options(echo=TRUE) # if you want see commands in output file
+ args <- commandArgs(trailingOnly = TRUE)
+ print(args)
 
 library("XML") # required for XML parsing
 library("gtools") # required for mixedsort
@@ -36,6 +36,7 @@ HarmonicCosine <- function(x,c0,c1) {
 Rk <-   1.9858775e-3 # kcal mol^-1 K^-1
 Temp <- 300 # K
 
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
 
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
@@ -241,9 +242,9 @@ Bestone <- function(DATA,ipot,MC,IBI) {
     MC<-FALSE
     IBI<-TRUE
   }  
-  print(MC)
-  print(IBI)
-  print(MCIBI)
+  if (MC) { cat("MCSA\n")}  
+  if (IBI) { cat("Only IBI\n")}
+  if (MCIBI) { cat("MCSA-IBI\n")}
   DistribALLSpl <- DATA$DistribALLSpl
   AllLossFrame <- DATA$AllLossFrame
   potlist <- DATA$potlist
@@ -256,25 +257,16 @@ Bestone <- function(DATA,ipot,MC,IBI) {
   ipotNparams <- DATA$ipotNparams
   last <- length(DistribALLSpl[[ipot]]$dists)
   step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
-  cat(last)
+  cat("Number of iterations :",last,"\n")
   if (MC)  {   
     BestDistrib <- data.frame(x=BestMCDistribs[[ipot]]$x,y=BestMCDistribs[[ipot]]$y)    
     BestFrame <- DATA$BestFrame
-  } else {  
-    if (MCIBI) {
-#      if (potlist[ipotindex[ipot]]=="theta") {
-#        BestFrame <- last
-#        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
-#      } else if (potlist[ipotindex[ipot]]=="r13") {
-#        BestFrame <- last-step
-#        BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
-#      }
-      BestFrame <- last - 1
-      BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[last]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)       
-    } else {
-      BestFrame <- last - 1
-      BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)             
-    }    
+  } else if (MCIBI) {      
+    BestFrame <- last - 1
+    BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)                     
+  } else {      
+      BestFrame <- last
+      BestDistrib <- data.frame(x= DistribALLSpl[[ipot]]$dists[[BestFrame]]$x,y= DistribALLSpl[[ipot]]$dists[[BestFrame]]$y)                     
   }  
   BestOne <- list(BestDistrib=BestDistrib, BestFrame=BestFrame)
   return(BestOne)
@@ -286,8 +278,7 @@ plotDistributions <- function(DATA) {
   DistribALLSpl <- DATA$DistribALLSpl
   AllLossFrame <- DATA$AllLossFrame
   potlist <- DATA$potlist
-  GiuliaDistribs <- DATA$GiuliaDistribs
-  BestMCDistribs <- DATA$BestMCDistribs
+  GiuliaDistribs <- DATA$GiuliaDistribs  
   refDistribs <- DATA$refDistribs
   ipotindex <- DATA$ipotindex
   MatrixAllParams <- DATA$MatrixAllParams
@@ -295,10 +286,10 @@ plotDistributions <- function(DATA) {
   ipotNparams <- DATA$ipotNparams
   
   thm <- theme(panel.background = element_rect(fill = 'white'),
-               panel.border = element_rect(colour = "black", fill=NA, size=3),
-               axis.ticks.x = element_line(size=6.0, colour="black"),
+               panel.border = element_rect(colour = "black", fill=NA, size=1.5),
+               axis.ticks.x = element_line(size=1.2, colour="black"),
                axis.title.x = element_blank(),
-               axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
+               axis.text.x  = element_text(angle=0, vjust=1., size=30, face="bold", colour="black"),
                axis.ticks.y = element_blank(),
                axis.text.y  = element_blank(),
                axis.title.y = element_blank(),
@@ -329,14 +320,14 @@ plotDistributions <- function(DATA) {
       }  
     } else {
       if (potlist[ipotindex[ipot]]=="r12") {
-        ranges[1] <- 4.0
-        ranges[2] <- 8.0
+        ranges[1] <- 4.5
+        ranges[2] <- 6.5
       } else if (potlist[ipotindex[ipot]]=="r13") {
         ranges[1] <- 4.0
-        ranges[2] <- 8.0    
+        ranges[2] <- 7.0    
       } else if (potlist[ipotindex[ipot]]=="theta") {
-        ranges[1] <- 60.0
-        ranges[2] <- 120.0
+        ranges[1] <- 70.0
+        ranges[2] <- 110.0
       } else if (potlist[ipotindex[ipot]]=="phi") {
         ranges[1] <- 20.0
         ranges[2] <- 120.0
@@ -374,16 +365,17 @@ plotDistributions <- function(DATA) {
     }
     
     plt <- ggplot(data=DistFrame) +   
-      geom_line(aes(x,y,group=run,alpha=run),size=8,color=c25[ipot]) + 
-      geom_line(data=refDistrib,aes(x,y),size=8,color="black") +
-      geom_line(data=GiuliaDistrib,aes(x,y),size=8,color=c25[7],linetype=2) +
-      geom_point(data=BestDistrib,aes(x,y),size=9,color="black") +
-      geom_point(data=BestDistrib,aes(x,y),size=7,color=c25[10]) +
+      geom_line(aes(x,y,group=run,alpha=run),size=3,color=c25[ipot]) + 
+      geom_line(data=refDistrib,aes(x,y),size=3,color="black") +
+      geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c25[7],linetype=2) +
+      geom_line(data=BestDistrib,aes(x,y),size=3.5,color="black") +
+      geom_line(data=BestDistrib,aes(x,y),size=2.5,color=c25[10]) +
       xlim(ranges) + 
       thm
     
-    filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Param",ipotindex[ipot]-1,".png",sep="")    
-    png(filename,width=2000,bg="transparent")
+    filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Param",ipotindex[ipot]-1,".pdf",sep="")    
+    #png(filename,width=2000,bg="transparent")
+    pdf(filename,width=8.0,height=4.0)
     print(plt)
     dev.off()
   }
@@ -403,18 +395,18 @@ plotLoss <- function(DATA) {
   ipotNparams <- DATA$ipotNparams
   
   thm <- theme(panel.background = element_rect(fill = 'white'),
-             panel.border = element_rect(colour = "black", fill=NA, size=3),
-             axis.ticks.x = element_line(size=6.0, colour="black"),
+             panel.border = element_rect(colour = "black", fill=NA, size=1.5),
+             axis.ticks.x = element_line(size=1.2, colour="black"),
              axis.title.x = element_blank(),
-             axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
-             axis.ticks.y = element_line(size=6.0, colour="black"),
-             axis.text.y  = element_text(angle=0, vjust=0.0, size=70, face="bold", colour="black"),
+             axis.text.x  = element_text(angle=0, vjust=1., size=30, face="bold", colour="black"),
+             axis.ticks.y = element_line(size=1.2, colour="black"),
+             axis.text.y  = element_text(angle=0, vjust=0.0, size=30, face="bold", colour="black"),
              axis.title.y = element_blank(),
              plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
              legend.title  = element_blank(),
              legend.text = element_blank(),
              legend.position = "none",
-             panel.grid.major.y = element_line(colour="black",size=2),
+             panel.grid.major.y = element_line(colour="black",size=0.8),
              panel.grid.major.x = element_blank())
   minx<-1
   maxx<-0
@@ -423,7 +415,7 @@ plotLoss <- function(DATA) {
   LossFrame <- data.frame()   
   if (MC) {   AvgLoss<-rowMeans(AllLossFrame,na.rm = TRUE) 
   }  else { 
-    AvgLoss <- matrix(0,nrow=1,ncol=length(DistribALLSpl[[ipot]]$losses))
+    AvgLoss <- matrix(0,nrow=1,ncol=length(DistribALLSpl[[1]]$losses))
     for (ipot in 1:length(DistribALLSpl)) {
       AvgLoss <- AvgLoss + as.vector(DistribALLSpl[[ipot]]$losses)      
     }
@@ -453,48 +445,138 @@ plotLoss <- function(DATA) {
   colnames(LossFrame)<-c("x","y","ipot")
 
   plt <- ggplot(data=LossFrame,aes(x,y)) + 
-  geom_line(color="black",size=8) + 
-  geom_line(aes(color=factor(ipot)),size=6) + 
+  geom_line(color="black",size=3) + 
+  geom_line(aes(color=factor(ipot)),size=2) + 
   scale_color_manual(values = c25) +
   facet_grid(ipot ~ .) +
   thm
 
   plt <- ggplot(data=LossFrame,aes(x,y,group=ipot)) + 
-  geom_line(color="black",size=8) + 
-  geom_line(aes(color=factor(ipot)),size=6) + 
+  geom_line(color="black",size=3) + 
+  geom_line(aes(color=factor(ipot)),size=2) + 
   scale_color_manual(values = c25) +
   thm
-  filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Loss.png",sep="")    
-  png(filename,width=2000,bg="transparent")
+  filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Loss.pdf",sep="")    
+  #png(filename,width=2000,bg="transparent")
+  pdf(filename,width=8.0,height=4.0)
   print(plt)
   dev.off()
 
-  plt <- ggplot(data=AvgLossFrame,aes(x,y)) + geom_line(size=8) + thm
-  filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-AVGLoss.png",sep="")    
-  png(filename,width=2000,bg="transparent")
+  plt <- ggplot(data=AvgLossFrame,aes(x,y)) + geom_line(size=3) + thm
+  filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-AVGLoss.pdf",sep="")    
+  #png(filename,width=2000,bg="transparent")
+  pdf(filename,width=8.0,height=4.0)
   print(plt)
   dev.off()
+  
+  #return(plt)
 } # end plotLoss
 
 
+plotRadar <- function(systems) {
+  sys <- systems[[1]]
+  StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",sys[1],"-",sys[2],"-",sys[3],"-DATA.RData",sep="")
+  load(StoredData)
+  DistribALLSpl <- DATA$DistribALLSpl
+  AllLossFrame <- DATA$AllLossFrame
+  potlist <- DATA$potlist
+  GiuliaDistribs <- DATA$GiuliaDistribs
+  BestMCDistribs <- DATA$BestMCDistribs
+  refDistribs <- DATA$refDistribs
+  ipotindex <- DATA$ipotindex
+  MatrixAllParams <- DATA$MatrixAllParams
+  ipotOpti <- DATA$ipotOpti
+  ipotNparams <- DATA$ipotNparams
+  
+  thm <- theme(panel.background = element_rect(fill = 'white'),
+               panel.border = element_rect(colour = "black", fill=NA, size=1.5),
+               axis.ticks.x = element_line(size=1.2, colour="black"),
+               axis.title.x = element_blank(),
+               axis.text.x  = element_text(angle=0, vjust=1., size=30, face="bold", colour="black"),
+               axis.ticks.y = element_line(size=1.2, colour="black"),
+               axis.text.y  = element_text(angle=0, vjust=0., size=30, face="bold", colour="black"),
+               axis.title.y = element_blank(),
+               plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+               legend.title  = element_blank(),               
+               legend.text = element_text(angle=0, vjust=1., size=20, face="bold", colour="black"),
+               plot.title =  element_text(angle=0, vjust=0.0, size=20, face="bold", colour="black"),
+               plot.margin= unit(c(0, 1, -0.5, 1),'lines'))
+  
+  isys <- 0
+  ipotOpti <- DATA$ipotOpti
+  mm <- matrix(0,nrow=ipotOpti,ncol=4) 
+  for (sys in systems) {     
+    StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",sys[1],"-",sys[2],"-",sys[3],"-DATA.RData",sep="")
+    load(StoredData)
+    DistribALLSpl <- DATA$DistribALLSpl
+    AllLossFrame <- DATA$AllLossFrame
+    potlist <- DATA$potlist
+    GiuliaDistribs <- DATA$GiuliaDistribs
+    BestMCDistribs <- DATA$BestMCDistribs
+    refDistribs <- DATA$refDistribs
+    ipotindex <- DATA$ipotindex
+    MatrixAllParams <- DATA$MatrixAllParams
+    ipotOpti <- DATA$ipotOpti
+    ipotNparams <- DATA$ipotNparams
+    
+    isys <- isys + 1    
+    
+    if (isys == 2) {      
+      cat("MC")
+      BestOne <- Bestone(DATA,1,sys[2],sys[1])    
+      BestFrame <- BestOne$BestFrame    
+      loss <- AllLossFrame[BestFrame,]
+      mm[,isys] <- t(loss[ipotindex])
+    } else {
+      cat("MCIBI or IBI")
 
+      for (ipot in c(1:length(DistribALLSpl))) {        
+        BestOne <- Bestone(DATA,1,sys[2],sys[1])    
+        BestFrame <- BestOne$BestFrame    
+        mm[ipot,isys] <- DistribALLSpl[[ipot]]$losses[BestFrame]
+      }
+    }    
+  }
+  
+  LossFrame <- as.data.frame(mm)    
+  LossFrame[,4]<-potlist[ipotindex]
+  if (sys[3]) {    
+    labb<- c(expression(r["i,i+2"]), expression(r["i,i+3"]), expression(r["i,i+4"]), expression(theta), expression(phi))
+  } else {     
+    labb<- c(expression(r["i,i+2"]), expression(r["i,i+3"]),  expression(theta), expression(phi))     
+  }
+  colnames(LossFrame) <- c("IBI","MCSA","MCSA-IBI","FF")
+  LossFrameM <- melt(LossFrame)
+  plt <- ggplot(LossFrameM,aes(x=FF,y=sqrt(value),fill=variable)) + 
+    geom_bar(stat="identity",position="dodge") + 
+    scale_fill_manual(values = cbbPalette) + 
+    scale_x_discrete("F",labels=labb) +    
+    scale_y_continuous(breaks=seq(0, 1.0, 0.5)) +     
+    thm 
+  #filename <- paste("Distributions/",Type,"/RadarPlot.pdf",sep="")    
+  #png(filename,width=2000,bg="transparent")
+  #pdf(filename,width=8.0,height=4.0)  
+  #print(plt)
+  #dev.off()
+  return(plt)
+}
 
 #######################################################
 
 
 
- # SET SYSTEM PARAMs
-#  if (length(args)<4) {
-#   stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
-#  }
-#  IBI <- as.logical(args[1])
-#  MC <- as.logical(args[2])
-#  Alpha <- as.logical(args[3])
-#  reloadXML <- as.logical(args[4])
-IBI<-FALSE
-MC<-TRUE
-Alpha<-FALSE
-reloadXML <- FALSE
+# # SET SYSTEM PARAMs
+ if (length(args)<4) {
+  stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
+ }
+ IBI <- as.logical(args[1])
+ MC <- as.logical(args[2])
+ Alpha <- as.logical(args[3])
+ reloadXML <- as.logical(args[4])
+ IBI<-TRUE
+ MC<-FALSE
+ Alpha<-TRUE
+ reloadXML <- FALSE
 
 IBIn <- ""
 MCn <- ""
@@ -512,7 +594,7 @@ if (MC&&IBI) {
   IBI<-TRUE
 }
 
-
+library("gtable")
 cat(StoredData,"\n")
 if (reloadXML) {
    DATA <- LoadData()
@@ -525,77 +607,22 @@ if (reloadXML) {
    # Loss Function
    plotLoss(DATA) 
    
-   # Radar plot
-   systems <- list(A=c(TRUE,FALSE,TRUE,FALSE),B=c(FALSE,TRUE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha   IBI, MC, MCIBI
-   systems <- list(A=c(TRUE,FALSE,FALSE,FALSE),B=c(FALSE,TRUE,FALSE,FALSE),C=c(TRUE,TRUE,FALSE,FALSE)) #310   IBI, MC, MCIBI
-   
-#  radarplot(DATA,systems)
-   
-   thm <- theme(panel.background = element_rect(fill = 'white'),
-             panel.border = element_rect(colour = "black", fill=NA, size=3),
-             axis.ticks.x = element_line(size=6.0, colour="black"),
-             axis.title.x = element_blank(),
-             axis.text.x  = element_text(angle=0, vjust=1., size=70, face="bold", colour="black"),
-             axis.ticks.y = element_blank(),
-             axis.text.y  = element_blank(),
-             axis.title.y = element_blank(),
-             plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
-             legend.title  = element_blank(),
-             legend.position = c(0.2,1),
-             legend.direction = "horizontal",
-             legend.text = element_text(angle=0, vjust=1., size=40, face="bold", colour="black"))
-
-   isys <- 0
-   ipotOpti <- DATA$ipotOpti
-   mm <- matrix(0,nrow=ipotOpti,ncol=4) 
-   for (sys in systems) {     
-    StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",sys[1],"-",sys[2],"-",sys[3],"-DATA.RData",sep="")
-    load(StoredData)
-    DistribALLSpl <- DATA$DistribALLSpl
-    AllLossFrame <- DATA$AllLossFrame
-    potlist <- DATA$potlist
-    GiuliaDistribs <- DATA$GiuliaDistribs
-    BestMCDistribs <- DATA$BestMCDistribs
-    refDistribs <- DATA$refDistribs
-    ipotindex <- DATA$ipotindex
-    MatrixAllParams <- DATA$MatrixAllParams
-    ipotOpti <- DATA$ipotOpti
-    ipotNparams <- DATA$ipotNparams
+#    # Radar plot
+    systems <- list(A=c(TRUE,FALSE,TRUE,FALSE),B=c(FALSE,TRUE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha   IBI, MC, MCIBI
+    p1<- plotRadar(systems)
+    systems <- list(A=c(TRUE,FALSE,FALSE,FALSE),B=c(FALSE,TRUE,FALSE,FALSE),C=c(TRUE,TRUE,FALSE,FALSE)) #310   IBI, MC, MCIBI   
+    p2<- plotRadar(systems) 
     
-    isys <- isys + 1
+    # Extract legend from first plot    
+    legend = gtable_filter(ggplot_gtable(ggplot_build(p1)), "guide-box")     
 
+    filename <- paste("Distributions/RadarPlot.pdf",sep="")    
+    pdf(filename,width=8.0,height=4.0)  
+    grid.arrange(arrangeGrob(p1 + theme(legend.position="none") + ggtitle("Alpha"),
+                             p2 + theme(legend.position="none") + ggtitle("310") ),
+                 legend,widths=c(0.8, 0.2),ncol=2)
+    dev.off()
     
-    if (isys == 2) {      
-      cat("MC")
-      BestOne <- Bestone(DATA,1,sys[2],sys[1])    
-      BestFrame <- BestOne$BestFrame    
-      loss <- AllLossFrame[BestFrame,]
-      mm[,isys] <- t(loss[ipotindex])
-    } else {
-      cat("MCIBI or IBI")
-      for (ipot in c(1:length(DistribALLSpl))) {        
-        BestOne <- Bestone(DATA,1,sys[2],sys[1])    
-        BestFrame <- BestOne$BestFrame    
-        mm[ipot,isys] <- DistribALLSpl[[ipot]]$losses[BestFrame]
-      }
-    }    
-   }
-   
-   LossFrame <- as.data.frame(mm)    
-   LossFrame[,4]<-potlist[ipotindex]
-   if (sys[4]) {    
-     labb<- c(expression(r["i,i+1"]), expression(r["i,i+2"]), expression(r["i,i+3"]), expression(theta), expression(phi))
-   } else {     
-     labb<- c(expression(r["i,i+1"]), expression(r["i,i+2"]),  expression(theta), expression(phi))     
-   }
-   colnames(LossFrame) <- c("IBI","MCSA","MCSA-IBI","FF")
-   LossFrameM <- melt(LossFrame)
-   ggplot(LossFrameM,aes(x=FF,y=value,fill=variable)) + geom_bar(stat="identity",position="dodge") + scale_fill_manual(values = c25) + scale_x_discrete("F",labels=labb) + thm
-   
-   dev.off()
-   
-   # 
- 
 }
 
 
