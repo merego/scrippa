@@ -54,6 +54,17 @@ c25 <- c("dodgerblue2","#E31A1C", # red
          "maroon","orchid1","deeppink1","blue1","steelblue4",
          "darkturquoise","green1","yellow4","yellow3",
          "darkorange4","brown")
+ c10 <- c("dodgerblue2",
+          "#E31A1C", # red
+          "green4",
+          "#6A3D9A", # purple
+          "#FF7F00", # orange
+          "black",
+          "gold1",
+          "skyblue2",
+          "#FB9A99", # lt pink
+          "gray70"
+          )
 
 LoadData <- function() {
 
@@ -258,7 +269,7 @@ Bestone <- function(DATA,ipot,MC,IBI) {
   last <- length(DistribALLSpl[[ipot]]$dists)
   step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
   cat("Number of iterations :",last,"\n")
-  if (MC)  {   
+  if (MC)  {
     BestDistrib <- data.frame(x=BestMCDistribs[[ipot]]$x,y=BestMCDistribs[[ipot]]$y)    
     BestFrame <- DATA$BestFrame
   } else if (MCIBI) {      
@@ -367,9 +378,9 @@ plotDistributions <- function(DATA) {
     plt <- ggplot(data=DistFrame) +   
       geom_line(aes(x,y,group=run,alpha=run),size=3,color=c25[ipot]) + 
       geom_line(data=refDistrib,aes(x,y),size=3,color="black") +
-      geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c25[7],linetype=2) +
+      geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c10[7],linetype=2) +
       geom_line(data=BestDistrib,aes(x,y),size=3.5,color="black") +
-      geom_line(data=BestDistrib,aes(x,y),size=2.5,color=c25[10]) +
+      geom_line(data=BestDistrib,aes(x,y),size=2.5,color=c10[10]) +
       xlim(ranges) + 
       thm
     
@@ -449,11 +460,10 @@ plotLoss <- function(DATA) {
   geom_line(aes(color=factor(ipot)),size=2) + 
   scale_color_manual(values = c25) +
   facet_grid(ipot ~ .) +
-  thm
-
+  thm    
   plt <- ggplot(data=LossFrame,aes(x,y,group=ipot)) + 
   geom_line(color="black",size=3) + 
-  geom_line(aes(color=factor(ipot)),size=2) + 
+  geom_line(aes(color=factor(ipot),size=2)) + 
   scale_color_manual(values = c25) +
   thm
   filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Loss.pdf",sep="")    
@@ -523,16 +533,16 @@ plotRadar <- function(systems) {
     
     if (isys == 2) {      
       cat("MC")
-      BestOne <- Bestone(DATA,1,sys[2],sys[1])    
-      BestFrame <- BestOne$BestFrame    
+      BestOne <- Bestone(DATA,ipot,sys[2],sys[1])    
+      BestFrame <- BestOne$BestFrame-1    # loss function is -1
       loss <- AllLossFrame[BestFrame,]
       mm[,isys] <- t(loss[ipotindex])
     } else {
       cat("MCIBI or IBI")
 
       for (ipot in c(1:length(DistribALLSpl))) {        
-        BestOne <- Bestone(DATA,1,sys[2],sys[1])    
-        BestFrame <- BestOne$BestFrame    
+        BestOne <- Bestone(DATA,ipot,sys[2],sys[1])    
+        BestFrame <- BestOne$BestFrame-1 # loss function is - 1
         mm[ipot,isys] <- DistribALLSpl[[ipot]]$losses[BestFrame]
       }
     }    
@@ -573,10 +583,10 @@ plotRadar <- function(systems) {
  MC <- as.logical(args[2])
  Alpha <- as.logical(args[3])
  reloadXML <- as.logical(args[4])
- IBI<-TRUE
- MC<-FALSE
- Alpha<-TRUE
- reloadXML <- FALSE
+#  IBI<-TRUE
+#  MC<-FALSE
+#  Alpha<-TRUE
+#  reloadXML <- FALSE
 
 IBIn <- ""
 MCn <- ""
@@ -602,6 +612,9 @@ if (reloadXML) {
 } else {
    load(StoredData)
    # Distributions
+   if (!Alpha) {
+     c25 <- c25[-4]     
+   }
    plotDistributions(DATA)
    
    # Loss Function
