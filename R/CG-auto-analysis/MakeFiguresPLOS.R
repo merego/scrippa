@@ -380,7 +380,7 @@ plotDistributions <- function(DATA) {
       geom_line(data=refDistrib,aes(x,y),size=3,color="black") +
       geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c10[7],linetype=2) +
       geom_line(data=BestDistrib,aes(x,y),size=3.5,color="black") +
-      geom_line(data=BestDistrib,aes(x,y),size=2.5,color=c10[10]) +
+      geom_line(data=BestDistrib,aes(x,y),size=2.5,color="#ff5eff") +
       xlim(ranges) + 
       thm
     
@@ -575,7 +575,7 @@ plotRadar <- function(systems) {
 
 
 
-# # SET SYSTEM PARAMs
+# # # SET SYSTEM PARAMs
  if (length(args)<4) {
   stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
  }
@@ -613,7 +613,7 @@ if (reloadXML) {
    load(StoredData)
    # Distributions
    if (!Alpha) {
-     c25 <- c25[-4]     
+     c25 <- c25[-3]     
    }
    plotDistributions(DATA)
    

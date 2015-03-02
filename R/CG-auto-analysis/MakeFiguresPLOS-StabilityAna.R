@@ -165,8 +165,8 @@ if (plotphipsi) {
     
    
    ggplts <- ggplt + 
-     xlab(expression(phi)) +
-     ylab(expression(psi)) +
+     xlab(expression(phi)[deg]) +
+     ylab(expression(psi)[deg]) +
      scale_x_continuous(expand=c(0.01,0), limits=c(-180,0)) +
      scale_y_continuous(expand=c(0.01,0.01), limits=c(-180,0)) +
      stat_contour(aes(x=x,y=y,z=z,fill=..level..),
@@ -370,18 +370,18 @@ if (plotdists) {
   pHB13 <- ggpltBASE + 
     geom_line(aes(x=HB13.V1, y = HB13.V2/max(HB13.V2)),col="black",size=2) +
     geom_line(aes(x=HB13.V1, y = HB13.V2.1/max(HB13.V2.1)),col="red",size=2,linetype="dashed") +
-    xlim(4,7) +  xlab(expression ( r["i,i+1"] )) +  ylab("")
+    xlim(4,7) +  xlab(expression ( r["i,i+2"] )) +  ylab("")
   
   pHB14 <- ggpltBASE + 
     geom_line(aes(x=HB14.V1, y = HB14.V2/max(HB14.V2)),col="black",size=2) +
     geom_line(aes(x=HB14.V1, y = HB14.V2.1/max(HB14.V2.1)),col="red",size=2,linetype="dashed") +
-    xlim(4,6.5) +  xlab(expression ( r["i,i+2"] )) +   ylab("")
+    xlim(4,6.5) +  xlab(expression ( r["i,i+3"] )) +   ylab("")
  
   if (halpha) { 
   pHB15 <- ggpltBASE + 
     geom_line(aes(x=HB15.V1, y = HB15.V2/max(HB15.V2)),col="black",size=2) +
     geom_line(aes(x=HB15.V1, y = HB15.V2.1/max(HB15.V2.1)),col="red",size=2,linetype="dashed") +
-    xlim(5,8) +  xlab(expression ( r["i,i+3"] )) +   ylab("")
+    xlim(5,8) +  xlab(expression ( r["i,i+4"] )) +   ylab("")
   }
 
   filename <- "imgs/Distributions.pdf"
