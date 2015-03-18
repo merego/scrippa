@@ -70,6 +70,7 @@ LoadData <- function() {
 
 
 
+
    # Distribution in the same order than in Main.XML
    #DistributionsType <- list("r13","")
    # Load Best iteration MC
@@ -88,9 +89,22 @@ LoadData <- function() {
    SortedFiles<-mixedsort(files)
    n_of_runs <- length(files)
    
-   # Load Reference distributions
    
-   
+   # Load r15 only for 310  helices
+   R15Dists310 <- list()
+   for (run in 1:n_of_runs) {
+     filename <- paste('OUTPUT/r',run-1,'/RECOMPUTED/R15.dat',sep="")
+     distrib <- as.data.frame(read.table(filename))
+     R15Dist310.spl <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
+     R15Dists310 <- lappend(R15Dists310,R15Dist310.spl)
+   }
+   filename <- "../R15310/R15Ref.dat"
+   distrib <-  as.data.frame(read.table(filename))
+   R15Ref310 <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
+   filename <- "../R15310/R15Giulia.dat"
+   distrib <-  as.data.frame(read.table(filename))
+   R15Giulia310 <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
+ 
    
    
    if (Alpha) { 
@@ -239,7 +253,7 @@ LoadData <- function() {
    } # potentials loop
    
    
-   DATA <- list(AllLossFrame=AllLossFrame,DistribALLSpl=DistribALLSpl,potlist=potlist,GiuliaDistribs=GiuliaDistribs,BestMCDistribs=BestMCDistribs,ipotindex=ipotindex,refDistribs=refDistribs,MatrixAllParams=MatrixAllParams,ipotOpti=ipotOpti,ipotNparams=ipotNparams,BestFrame=BestIterationN)
+   DATA <- list(AllLossFrame=AllLossFrame,DistribALLSpl=DistribALLSpl,potlist=potlist,GiuliaDistribs=GiuliaDistribs,BestMCDistribs=BestMCDistribs,ipotindex=ipotindex,refDistribs=refDistribs,MatrixAllParams=MatrixAllParams,ipotOpti=ipotOpti,ipotNparams=ipotNparams,BestFrame=BestIterationN,R15Dists310=R15Dists310,R15Ref=R15Ref310,R15Giu=R15Giulia310)
    return(DATA)
 
 } # END load data function
@@ -295,7 +309,10 @@ plotDistributions <- function(DATA) {
   MatrixAllParams <- DATA$MatrixAllParams
   ipotOpti <- DATA$ipotOpti
   ipotNparams <- DATA$ipotNparams
-  
+  R15Dists310 <- DATA$R15Dists310
+  R15Ref310 <- DATA$R15Ref
+  R15Giulia310 <- DATA$R15Giu   
+
   thm <- theme(panel.background = element_rect(fill = 'white'),
                panel.border = element_rect(colour = "black", fill=NA, size=1.5),
                axis.ticks.x = element_line(size=1.2, colour="black"),
@@ -390,8 +407,46 @@ plotDistributions <- function(DATA) {
     print(plt)
     dev.off()
   }
-} # end plotDistributions
  
+# PLOT DISTRIBUTIONS FOR R15 310
+    DistFrameR15 <- data.frame()  
+    for (i in seq(1,last,by=step) ) {    
+      distrib <- R15Dists310[[i]]
+      mm <- matrix(0,nrow=length(distrib$x),ncol=3)
+      mm[,1] <- distrib$x
+      mm[,2] <- distrib$y
+      mm[,3] <- rep(i,length(distrib$x))
+      DistFrameR15 <- rbind(DistFrameR15,mm)
+    }
+    colnames(DistFrameR15)<-c("x","y","run")
+    
+    # Referece
+    refDistrib <- data.frame(x=R15Ref310$x,y=R15Ref310$y)
+    # Gulia
+    GiuliaDistrib <- data.frame(x=R15Giulia310$x,y=R15Giulia310$y)
+    
+    if (MCIBI) {
+      thm <- thm 
+    } else {
+      thm <- thm + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+    }
+    ranges[1] <- 5.0
+    ranges[2] <- 10.0
+    plt <- ggplot(data=DistFrameR15) +   
+      geom_line(aes(x,y,group=run,alpha=run),size=3,color=c25[3]) + 
+      geom_line(data=refDistrib,aes(x,y),size=3,color="black") +
+      geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c10[7],linetype=2) +
+      xlim(ranges) + 
+      thm
+    
+    filename <- paste("Distributions/310/",IBIn,MCn,"-R15.pdf",sep="")    
+    #png(filename,width=2000,bg="transparent")
+    pdf(filename,width=8.0,height=4.0)
+    print(plt)
+    dev.off()
+
+} # end plotDistributions
+
 #  5. Figures about Loss function
 plotLoss <- function(DATA) {
   DistribALLSpl <- DATA$DistribALLSpl
