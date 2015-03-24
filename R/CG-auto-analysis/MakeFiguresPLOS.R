@@ -92,18 +92,22 @@ LoadData <- function() {
    
    # Load r15 only for 310  helices
    R15Dists310 <- list()
-   for (run in 1:n_of_runs) {
+   R15Ref310 <- list()
+   R15Giulia310 <- list()
+   if (!Alpha) {
+    for (run in 1:n_of_runs) {
      filename <- paste('OUTPUT/r',run-1,'/RECOMPUTED/R15.dat',sep="")
      distrib <- as.data.frame(read.table(filename))
      R15Dist310.spl <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
      R15Dists310 <- lappend(R15Dists310,R15Dist310.spl)
+    }
+    filename <- "../R15310/R15Ref.dat"
+    distrib <-  as.data.frame(read.table(filename))
+    R15Ref310 <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
+    filename <- "../R15310/R15Giulia.dat"
+    distrib <-  as.data.frame(read.table(filename))
+    R15Giulia310 <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
    }
-   filename <- "../R15310/R15Ref.dat"
-   distrib <-  as.data.frame(read.table(filename))
-   R15Ref310 <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
-   filename <- "../R15310/R15Giulia.dat"
-   distrib <-  as.data.frame(read.table(filename))
-   R15Giulia310 <- spline(distrib[,1],distrib[,2]/(sum(distrib[,2])*diff(distrib[,1])[1]),n=2*length(distrib[,1]))
  
    
    
@@ -409,41 +413,43 @@ plotDistributions <- function(DATA) {
   }
  
 # PLOT DISTRIBUTIONS FOR R15 310
-    DistFrameR15 <- data.frame()  
-    for (i in seq(1,last,by=step) ) {    
-      distrib <- R15Dists310[[i]]
-      mm <- matrix(0,nrow=length(distrib$x),ncol=3)
-      mm[,1] <- distrib$x
-      mm[,2] <- distrib$y
-      mm[,3] <- rep(i,length(distrib$x))
-      DistFrameR15 <- rbind(DistFrameR15,mm)
+    if (!Alpha) {
+      DistFrameR15 <- data.frame()  
+      for (i in seq(1,last,by=step) ) {    
+        distrib <- R15Dists310[[i]]
+        mm <- matrix(0,nrow=length(distrib$x),ncol=3)
+        mm[,1] <- distrib$x
+        mm[,2] <- distrib$y
+        mm[,3] <- rep(i,length(distrib$x))
+        DistFrameR15 <- rbind(DistFrameR15,mm)
+      }
+      colnames(DistFrameR15)<-c("x","y","run")
+      
+      # Referece
+      refDistrib <- data.frame(x=R15Ref310$x,y=R15Ref310$y)
+      # Gulia
+      GiuliaDistrib <- data.frame(x=R15Giulia310$x,y=R15Giulia310$y)
+      
+      if (MCIBI) {
+        thm <- thm 
+      } else {
+        thm <- thm + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+      }
+      ranges[1] <- 5.0
+      ranges[2] <- 10.0
+      plt <- ggplot(data=DistFrameR15) +   
+        geom_line(aes(x,y,group=run,alpha=run),size=3,color=c25[3]) + 
+        geom_line(data=refDistrib,aes(x,y),size=3,color="black") +
+        geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c10[7],linetype=2) +
+        xlim(ranges) + 
+        thm
+      
+      filename <- paste("Distributions/310/",IBIn,MCn,"-R15.pdf",sep="")    
+      #png(filename,width=2000,bg="transparent")
+      pdf(filename,width=8.0,height=4.0)
+      print(plt)
+      dev.off()
     }
-    colnames(DistFrameR15)<-c("x","y","run")
-    
-    # Referece
-    refDistrib <- data.frame(x=R15Ref310$x,y=R15Ref310$y)
-    # Gulia
-    GiuliaDistrib <- data.frame(x=R15Giulia310$x,y=R15Giulia310$y)
-    
-    if (MCIBI) {
-      thm <- thm 
-    } else {
-      thm <- thm + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
-    }
-    ranges[1] <- 5.0
-    ranges[2] <- 10.0
-    plt <- ggplot(data=DistFrameR15) +   
-      geom_line(aes(x,y,group=run,alpha=run),size=3,color=c25[3]) + 
-      geom_line(data=refDistrib,aes(x,y),size=3,color="black") +
-      geom_line(data=GiuliaDistrib,aes(x,y),size=3,color=c10[7],linetype=2) +
-      xlim(ranges) + 
-      thm
-    
-    filename <- paste("Distributions/310/",IBIn,MCn,"-R15.pdf",sep="")    
-    #png(filename,width=2000,bg="transparent")
-    pdf(filename,width=8.0,height=4.0)
-    print(plt)
-    dev.off()
 
 } # end plotDistributions
 
@@ -691,69 +697,80 @@ if (reloadXML) {
                  legend,widths=c(0.8, 0.2),ncol=2)
     dev.off()
     
-}
 
 
 
 
-# # 6.  Best Parameters selection (For montecarlo only)
-# if (MC) {
-#   # Best params based on SqSum and Var
-#   Vm <- vector()
-#   SqSum <- vector()
-#   VarM <- vector()
-#   VarScaled <- vector()
-#   for (run in 1:nrow(AllLossFrame)) {
-#     SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
-#     #if (length(OptimPotIndex)>1) 
-#       VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
-#     #else
-#     #  VarScaled[run] <- 0.0
-#   }
-#   SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
-#   #if (length(OptimPotIndex)>1) 
-#     VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
-#   Vm <- SqScaled + VarScaled
-#   
-#   # Sort 
-#   #avgSort <- sort(AvgLoss,index.return=TRUE) 
-#   avgSort <- sort(Vm,index.return=TRUE) 
-#   SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(10,length(avgSort$ix))]-1,])
-#   #s[,10] <- (s[,10]+3.14)*180/3.14
-#   #s[,8] <- s[,8]*180/3.14
-#   all_mean <- sapply(SortedParametersFrame,median)
-#   all_quantiles <- sapply(SortedParametersFrame,quantile)
-#   
-#   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
-#   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
-#   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
-#   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
-#   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
-#   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
-#   # Save out latex table
-#   caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
-#   tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
-#   filename <- "BestBasedOnAvgLoss_MCSA.tex"
-#   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
-# 
-#   Nstart <- 1
-#   for (i in 1:ipotOpti) { 
-#     Nparams <- ipotNparams[i]
-#     for (j in 1:Nparams) {
-#       val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
-#       cat("<parameter>",val,"</parameter>\n")
-#     }
-#     for (j in 1:Nparams) {
-#       val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
-#       cat("<parameter_min>",val,"</parameter_min>\n")
-#     }
-#     for (j in 1:Nparams) {
-#       val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
-#       cat("<parameter_max>",val,"</parameter_max>\n")
-#     }
-#     Nstart <- Nstart + Nparams
-#   }
-# }
-# 
-# 
+
+ # 6.  Best Parameters selection (For montecarlo only)
+ if (MC) {
+  DistribALLSpl <- DATA$DistribALLSpl
+  AllLossFrame <- DATA$AllLossFrame
+  potlist <- DATA$potlist
+  GiuliaDistribs <- DATA$GiuliaDistribs
+  BestMCDistribs <- DATA$BestMCDistribs
+  refDistribs <- DATA$refDistribs
+  ipotindex <- DATA$ipotindex
+  MatrixAllParams <- DATA$MatrixAllParams
+  ipotOpti <- DATA$ipotOpti
+  ipotNparams <- DATA$ipotNparams
+
+   # Best params based on SqSum and Var
+   Vm <- vector()
+   SqSum <- vector()
+   VarM <- vector()
+   VarScaled <- vector()
+   for (run in 1:nrow(AllLossFrame)) {
+     SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
+     #if (length(OptimPotIndex)>1) 
+       VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
+     #else
+     #  VarScaled[run] <- 0.0
+   }
+   SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
+   #if (length(OptimPotIndex)>1) 
+     VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
+   Vm <- SqScaled + VarScaled
+   
+   # Sort 
+   #avgSort <- sort(AvgLoss,index.return=TRUE) 
+   avgSort <- sort(Vm,index.return=TRUE) 
+   SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(20,length(avgSort$ix))]-1,])
+   #s[,10] <- (s[,10]+3.14)*180/3.14
+   #s[,8] <- s[,8]*180/3.14
+   all_mean <- sapply(SortedParametersFrame,median)
+   all_quantiles <- sapply(SortedParametersFrame,quantile)
+   
+   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
+   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
+   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
+   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
+   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
+   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
+   # Save out latex table
+   caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
+   tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
+   filename <- "BestBasedOnAvgLoss_MCSA.tex"
+   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
+ 
+   Nstart <- 1
+   for (i in 1:ipotOpti) { 
+     Nparams <- ipotNparams[i]
+     for (j in 1:Nparams) {
+       val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
+       cat("<parameter>",val,"</parameter>\n")
+     }
+     for (j in 1:Nparams) {
+       val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
+       cat("<parameter_min>",val,"</parameter_min>\n")
+     }
+     for (j in 1:Nparams) {
+       val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
+       cat("<parameter_max>",val,"</parameter_max>\n")
+     }
+     Nstart <- Nstart + Nparams
+   }
+ }
+ 
+} 
 
