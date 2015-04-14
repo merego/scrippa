@@ -285,7 +285,7 @@ Bestone <- function(DATA,ipot,MC,IBI) {
   ipotOpti <- DATA$ipotOpti
   ipotNparams <- DATA$ipotNparams
   last <- length(DistribALLSpl[[ipot]]$dists)
-  step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
+  step <- min( round(length(DistribALLSpl[[ipot]]$dists) / 11), 20)
   cat("Number of iterations :",last,"\n")
   if (MC)  {
     BestDistrib <- data.frame(x=BestMCDistribs[[ipot]]$x,y=BestMCDistribs[[ipot]]$y)    
@@ -367,7 +367,7 @@ plotDistributions <- function(DATA) {
     }  
     
     last <- length(DistribALLSpl[[ipot]]$dists)
-    step <- round(length(DistribALLSpl[[ipot]]$dists) / 11)
+    step <- min(round(length(DistribALLSpl[[ipot]]$dists) / 11) , 20) 
     # Reshape into data frame
     DistFrame <- data.frame()  
     for (i in seq(1,last,by=step) ) {    
@@ -478,7 +478,7 @@ plotLoss <- function(DATA) {
              legend.title  = element_blank(),
              legend.text = element_blank(),
              legend.position = "none",
-             panel.grid.major.y = element_line(colour="black",size=0.8),
+             panel.grid.major.y = element_line(colour="black",size=0.2),
              panel.grid.major.x = element_blank())
   minx<-1
   maxx<-0
@@ -510,7 +510,7 @@ plotLoss <- function(DATA) {
     loss <- DistribALLSpl[[ipot]]$losses
     mm <- matrix(0,nrow=length(Acc),ncol=3)
     mm[,1] <- Acc
-    mm[,2] <- loss + 1*ipot-1
+    mm[,2] <- loss # + 1*ipot-1
     mm[,3] <- rep(ipot,length(Acc))
     LossFrame <- rbind(LossFrame, mm)    
   }  
@@ -636,7 +636,7 @@ plotRadar <- function(systems) {
 
 
 
-# # # SET SYSTEM PARAMs
+# # SET SYSTEM PARAMs
  if (length(args)<4) {
   stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
  }
@@ -644,10 +644,10 @@ plotRadar <- function(systems) {
  MC <- as.logical(args[2])
  Alpha <- as.logical(args[3])
  reloadXML <- as.logical(args[4])
-#  IBI<-TRUE
-#  MC<-FALSE
+#  IBI<-FALSE
+#  MC<-TRUE
 #  Alpha<-TRUE
-#  reloadXML <- FALSE
+#  reloadXML <- TRUE
 
 IBIn <- ""
 MCn <- ""
@@ -702,75 +702,76 @@ if (reloadXML) {
 
 
 
- # 6.  Best Parameters selection (For montecarlo only)
- if (MC) {
-  DistribALLSpl <- DATA$DistribALLSpl
-  AllLossFrame <- DATA$AllLossFrame
-  potlist <- DATA$potlist
-  GiuliaDistribs <- DATA$GiuliaDistribs
-  BestMCDistribs <- DATA$BestMCDistribs
-  refDistribs <- DATA$refDistribs
-  ipotindex <- DATA$ipotindex
-  MatrixAllParams <- DATA$MatrixAllParams
-  ipotOpti <- DATA$ipotOpti
-  ipotNparams <- DATA$ipotNparams
+#  # 6.  Best Parameters selection (For montecarlo only)
+#  if (MC) {
+#   DistribALLSpl <- DATA$DistribALLSpl
+#   AllLossFrame <- DATA$AllLossFrame
+#   potlist <- DATA$potlist
+#   GiuliaDistribs <- DATA$GiuliaDistribs
+#   BestMCDistribs <- DATA$BestMCDistribs
+#   refDistribs <- DATA$refDistribs
+#   ipotindex <- DATA$ipotindex
+#   MatrixAllParams <- DATA$MatrixAllParams
+#   ipotOpti <- DATA$ipotOpti
+#   ipotNparams <- DATA$ipotNparams
+# 
+#    # Best params based on SqSum and Var
+#    Vm <- vector()
+#    SqSum <- vector()
+#    VarM <- vector()
+#    VarScaled <- vector()
+#    for (run in 1:nrow(AllLossFrame)) {
+#      SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
+#      #if (length(OptimPotIndex)>1) 
+#        VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
+#      #else
+#      #  VarScaled[run] <- 0.0
+#    }
+#    SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
+#    #if (length(OptimPotIndex)>1) 
+#      VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
+#    Vm <- SqScaled + VarScaled
+#    
+#    # Sort 
+#    #avgSort <- sort(AvgLoss,index.return=TRUE) 
+#    avgSort <- sort(Vm,index.return=TRUE) 
+#    SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(20,length(avgSort$ix))]-1,])
+#    #s[,10] <- (s[,10]+3.14)*180/3.14
+#    #s[,8] <- s[,8]*180/3.14
+#    all_mean <- sapply(SortedParametersFrame,median)
+#    all_quantiles <- sapply(SortedParametersFrame,quantile)
+#    
+#    SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
+#    SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
+#    SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
+#    rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
+#    rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
+#    rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
+#    # Save out latex table
+#    caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
+#    tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
+#    filename <- "BestBasedOnAvgLoss_MCSA.tex"
+#    print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
+#  
+#    Nstart <- 1
+#    for (i in 1:ipotOpti) { 
+#      Nparams <- ipotNparams[i]
+#      for (j in 1:Nparams) {
+#        val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
+#        cat("<parameter>",val,"</parameter>\n")
+#      }
+#      for (j in 1:Nparams) {
+#        val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
+#        cat("<parameter_min>",val,"</parameter_min>\n")
+#      }
+#      for (j in 1:Nparams) {
+#        val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
+#        cat("<parameter_max>",val,"</parameter_max>\n")
+#      }
+#      Nstart <- Nstart + Nparams
+#    }
+#  }
+#  
 
-   # Best params based on SqSum and Var
-   Vm <- vector()
-   SqSum <- vector()
-   VarM <- vector()
-   VarScaled <- vector()
-   for (run in 1:nrow(AllLossFrame)) {
-     SqSum[run] <- sum(AllLossFrame[run,]^2,na.rm=TRUE)
-     #if (length(OptimPotIndex)>1) 
-       VarM[run] <- sd(AllLossFrame[run,],na.rm=TRUE)^2
-     #else
-     #  VarScaled[run] <- 0.0
-   }
-   SqScaled<-(SqSum-min(SqSum))/(max(SqSum)-min(SqSum))
-   #if (length(OptimPotIndex)>1) 
-     VarScaled<-(VarM-min(VarM))/(max(VarM)-min(VarM))
-   Vm <- SqScaled + VarScaled
-   
-   # Sort 
-   #avgSort <- sort(AvgLoss,index.return=TRUE) 
-   avgSort <- sort(Vm,index.return=TRUE) 
-   SortedParametersFrame<-as.data.frame(MatrixAllParams[avgSort$ix[1:min(20,length(avgSort$ix))]-1,])
-   #s[,10] <- (s[,10]+3.14)*180/3.14
-   #s[,8] <- s[,8]*180/3.14
-   all_mean <- sapply(SortedParametersFrame,median)
-   all_quantiles <- sapply(SortedParametersFrame,quantile)
-   
-   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[3,])
-   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[2,])
-   SortedParametersFrame <- rbind(SortedParametersFrame,all_quantiles[4,])
-   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-2]<-c("Median")
-   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)-1]<-c("25pct")
-   rownames(SortedParametersFrame)[nrow(SortedParametersFrame)]<-c("75pct")
-   # Save out latex table
-   caption <- "Best parameters based on average loss function. Params are sorted on average loss function and the top 5 (max) are selected. Based on MC-SA simulations."
-   tab <- xtable(t(SortedParametersFrame[,]), caption=caption)
-   filename <- "BestBasedOnAvgLoss_MCSA.tex"
-   print(tab,file=filename,append=F,table.placement = "h", caption.placement="bottom")
- 
-   Nstart <- 1
-   for (i in 1:ipotOpti) { 
-     Nparams <- ipotNparams[i]
-     for (j in 1:Nparams) {
-       val <- SortedParametersFrame[nrow(SortedParametersFrame)-2,Nstart:Nstart+j-1]
-       cat("<parameter>",val,"</parameter>\n")
-     }
-     for (j in 1:Nparams) {
-       val <- SortedParametersFrame[nrow(SortedParametersFrame)-1,Nstart:Nstart+j-1]
-       cat("<parameter_min>",val,"</parameter_min>\n")
-     }
-     for (j in 1:Nparams) {
-       val <- SortedParametersFrame[nrow(SortedParametersFrame),Nstart:Nstart+j-1]
-       cat("<parameter_max>",val,"</parameter_max>\n")
-     }
-     Nstart <- Nstart + Nparams
-   }
- }
- 
 } 
 
