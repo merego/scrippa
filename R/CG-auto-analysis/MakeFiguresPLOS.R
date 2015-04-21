@@ -1,6 +1,6 @@
- options(echo=TRUE) # if you want see commands in output file
- args <- commandArgs(trailingOnly = TRUE)
- print(args)
+# options(echo=TRUE) # if you want see commands in output file
+# args <- commandArgs(trailingOnly = TRUE)
+# print(args)
 
 library("XML") # required for XML parsing
 library("gtools") # required for mixedsort
@@ -112,13 +112,14 @@ LoadData <- function() {
    
    
    if (Alpha) { 
-     potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
+     #potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
+     potlist<-c("null","r12","theta","phi","vdw")
    } else {
      potlist<-c("null","r12","r13","theta","phi","vdw")  
    }
    
    
-   #  1.  Load distributions and losses
+   # Get reference distrubutions, Giulia distributions and Best distributions
    doc0 <- xmlInternalTreeParse(SortedFiles[1]);
    src0 <- xpathApply(doc0, "//input/param")
    NumberOfPotentials <- xmlSize(src0)
@@ -167,6 +168,7 @@ LoadData <- function() {
    ipotOpti <- 0
    ipotNparams <- vector()
    MatrixParams <- matrix(0,(n_of_runs-1),byrow=TRUE)
+   
    for (ipot in 1:NumberOfPotentials) {
      distribs.spl <- list()
      FittedPMFs <- list()
@@ -174,25 +176,29 @@ LoadData <- function() {
      losses <- vector()    
      Medians <- vector()    
      acceptedIterations <- vector()
+     
+     # Only for optimized potentials
      if (bOptimize[ipot] == "true") {
        ipotOpti <- ipotOpti + 1
        params <- vector()
+       
+       #  Loop over iterations
        for (run in 1:n_of_runs) {
-         doc <- xmlInternalTreeParse(SortedFiles[run]);
-         src <- xpathApply(doc, "//input/param")
-         TmpDoc <- xmlDoc(src[[ipot]])
-         #bOptimize <- xpathApply(TmpDoc,"//bOptimize",xmlValue)[[1]]
-         #ii <- 0  
-         # Print out only if optimized potentials
-         #if(bOptimize=="true") {
+          doc <- xmlInternalTreeParse(SortedFiles[run]);
+          src <- xpathApply(doc, "//input/param")
+          TmpDoc <- xmlDoc(src[[ipot]])
+          
+          # Check acceptance (only for MC)
           if (MC) {
-             status <- xpathApply(TmpDoc,"//Accepted",xmlValue)[[1]] 
+            status <- xpathApply(TmpDoc,"//Accepted",xmlValue)[[1]] 
           }  else {
             status <- "true"
           }
+          
           # Read Distribution
           filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat',sep="")
           distrib <- as.data.frame(read.table(filename))
+          
           # Read Fitted PMF (only for IBI)
           if (IBI)  {
            filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat.fitted.PMF.dat',sep="")
@@ -200,6 +206,7 @@ LoadData <- function() {
            filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat.tobefitted.PMF.dat',sep="")
            ToBeFitted <- as.data.frame(read.table(filename))
           }           
+          
           # And compute median 
           forMedian <- which(cumsum(distrib[,2]/sum(distrib[,2]))<0.5)
           Median <- distrib[c(length(forMedian)),1]
@@ -228,28 +235,27 @@ LoadData <- function() {
              loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
              losses <- append(losses,loss)   
              acceptedIterations <- append(acceptedIterations,run)          
-           }
-         # only for MC, these will be used to get the best parameters
-         if (MC) {
+           } # Eend if status == true (accepted only)  
+          # only for MC, these will be used to get the best parameters
+          if (MC) {
            AllLossFrame[run,ipot] <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
-           paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter_try",xmlValue))
+           paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter",xmlValue))           
            params <- append(params,paramipot)        
-         } else {                  
-             paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter",xmlValue))
-             params <- append(params,paramipot)               
-         }
+          } else {                  
+            paramipot <- as.numeric(xpathApply(TmpDoc,"//parameter",xmlValue))             
+            params <- append(params,paramipot)               
+          }         
        } # iterations loop
-       Nparams <- round(length(params)/(n_of_runs-1)) 
+       Nparams <- round(length(params)/(n_of_runs-1))        
        ipotNparams[ipotOpti] <- Nparams
-       if (MC) {
-         MatrixParams <- matrix(params,(n_of_runs-1),byrow=TRUE) 
-       }   else {
-         MatrixParams <- matrix(params,(n_of_runs),byrow=TRUE) }
-       if (ipotOpti==1) {
-         MatrixAllParams <- MatrixParams }
-       else {
+       MatrixParams <- matrix(params,(n_of_runs),byrow=TRUE)                                 
+                                       
+       #                                   
+       if (ipotOpti==1)
+         MatrixAllParams <- MatrixParams
+       else
          MatrixAllParams <- cbind(MatrixAllParams,MatrixParams)
-       }
+       
        DistAndLosses <- list(dists=distribs.spl,losses=losses,Medians=Medians,acceptedIterations=acceptedIterations,params=MatrixParams,FittedPMFs=FittedPMFs,ToBeFittedPMFs=ToBeFittedPMFs)
        DistribALLSpl <- lappend(DistribALLSpl,DistAndLosses)
        
@@ -470,9 +476,9 @@ plotLoss <- function(DATA) {
              panel.border = element_rect(colour = "black", fill=NA, size=1.5),
              axis.ticks.x = element_line(size=1.2, colour="black"),
              axis.title.x = element_blank(),
-             axis.text.x  = element_text(angle=0, vjust=1., size=30, face="bold", colour="black"),
+             axis.text.x  = element_text(angle=0, vjust=1., size=20, face="bold", colour="black"),
              axis.ticks.y = element_line(size=1.2, colour="black"),
-             axis.text.y  = element_text(angle=0, vjust=0.0, size=30, face="bold", colour="black"),
+             axis.text.y  = element_text(angle=0, vjust=0.0, size=20, face="bold", colour="black"),
              axis.title.y = element_blank(),
              plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
              legend.title  = element_blank(),
@@ -509,24 +515,32 @@ plotLoss <- function(DATA) {
     Acc <- DistribALLSpl[[ipot]]$acceptedIterations
     loss <- DistribALLSpl[[ipot]]$losses
     mm <- matrix(0,nrow=length(Acc),ncol=3)
-    mm[,1] <- Acc
+    #mm[,1] <- Acc
+    mm[,1] <- seq(1,length(Acc))
     mm[,2] <- loss # + 1*ipot-1
     mm[,3] <- rep(ipot,length(Acc))
     LossFrame <- rbind(LossFrame, mm)    
   }  
   colnames(LossFrame)<-c("x","y","ipot")
+  if(Alpha)
+    LossFrame$labels <- factor(LossFrame$ipot, labels = c( expression(r["i,i+2"]), expression(r["i,i+3"]), expression(r["i,i+4"]), expression(theta), expression(phi)) )
+  else
+    LossFrame$labels <- factor(LossFrame$ipot, labels = c( expression(r["i,i+2"]), expression(r["i,i+3"]), expression(theta), expression(phi)) )
+  
+  
+  
 
   plt <- ggplot(data=LossFrame,aes(x,y)) + 
   geom_line(color="black",size=3) + 
   geom_line(aes(color=factor(ipot)),size=2) + 
   scale_color_manual(values = c25) +
-  facet_grid(ipot ~ .) +
-  thm    
-  plt <- ggplot(data=LossFrame,aes(x,y,group=ipot)) + 
-  geom_line(color="black",size=3) + 
-  geom_line(aes(color=factor(ipot),size=2)) + 
-  scale_color_manual(values = c25) +
-  thm
+  facet_grid(labels ~ ., labeller = label_parsed, scale="free_y") +
+  thm + scale_y_continuous(breaks=seq(0, 1.0, 0.3)) 
+  #plt <- ggplot(data=LossFrame,aes(x,y,group=ipot)) + 
+  #geom_line(color="black",size=3) + 
+  #geom_line(aes(color=factor(ipot),size=2)) + 
+  #scale_color_manual(values = c25) +
+  #thm
   filename <- paste("Distributions/",Type,"/",IBIn,MCn,"-Loss.pdf",sep="")    
   #png(filename,width=2000,bg="transparent")
   pdf(filename,width=8.0,height=4.0)
@@ -543,6 +557,75 @@ plotLoss <- function(DATA) {
   #return(plt)
 } # end plotLoss
 
+ #  5. Figures about Loss function
+plotParam <- function(DATA) {
+   DistribALLSpl <- DATA$DistribALLSpl
+   AllLossFrame <- DATA$AllLossFrame
+   potlist <- DATA$potlist
+   GiuliaDistribs <- DATA$GiuliaDistribs
+   BestMCDistribs <- DATA$BestMCDistribs
+   refDistribs <- DATA$refDistribs
+   ipotindex <- DATA$ipotindex
+   MatrixAllParams <- DATA$MatrixAllParams
+   ipotOpti <- DATA$ipotOpti
+   ipotNparams <- DATA$ipotNparams
+   
+   thm <- theme(panel.background = element_rect(fill = 'white'),
+                panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+                axis.ticks.x = element_line(size=1.2, colour="black"),
+                axis.title.x = element_blank(),
+                axis.text.x  = element_text(angle=0, vjust=1., size=15, face="bold", colour="black"),
+                axis.ticks.y = element_line(size=1.2, colour="black"),
+                axis.text.y  = element_text(angle=0, vjust=0.0, size=15, face="bold", colour="black"),
+                axis.title.y = element_blank(),
+                plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+                legend.title  = element_blank(),
+                legend.text = element_blank(),
+                legend.position = "none",
+                panel.grid.major.y = element_line(colour="black",size=0.1),
+                panel.grid.major.x = element_blank())
+   
+   if (Alpha)
+     lab <- c("e-r13","r13-0","a-r13","e-r14","r14-0","a-r14","e-r15","r15-0","a-r15","k-theta","theta-0","k-phi","phi-0")
+   else
+     lab <- c("e-r13","r13-0","a-r13","e-r14","r14-0","a-r14","k-theta","theta-0","k-phi","phi-0")
+   
+   df <- melt(MatrixAllParams)
+   Niter <- nrow(MatrixAllParams)
+   df$Label <- factor(df$X2, labels=lab)
+   if (Alpha)
+     df$iPot <- c(rep("r13",each=Niter,times=3),rep("r14",each=Niter,times=3),rep("r15",each=Niter,times=3),rep("theta",each=Niter,times=2),rep("phi",each=Niter,times=2))
+   else
+     df$iPot <- c(rep("r13",each=Niter,times=3),rep("r14",each=Niter,times=3),rep("theta",each=Niter,times=2),rep("phi",each=Niter,times=2))
+   
+   colnames(df) <- c("Iteration","ParamID","Value","Label","iPot")
+   
+   plt <- ggplot(data=df, aes(Iteration,Value, group=Label)) +
+     geom_line(color="black",size=2) + 
+     geom_line(aes(color=factor(iPot)),size=1) + 
+     scale_color_manual(values = c25) +
+     facet_wrap(~ Label, ncol=3, scales = "free_y") +     
+     thm    
+
+   filename <- paste("Distributions/",Type,"/Parameters.pdf",sep="")  
+   pdf(filename,width=8.0,height=8.0)  
+   print(plt)
+   dev.off()
+   
+   plt <- ggplot(data=df, aes(x=Value)) +
+     geom_density(colour="black",size=0.5,adjust=0.8) +     
+     geom_density(aes(fill=factor(iPot)),size=1,adjust=0.8) +     
+     scale_fill_manual(values = c25) +
+     facet_wrap(~ Label, ncol=3, scales = "free") +     
+     thm
+   
+   
+   filename <- paste("Distributions/",Type,"/ParametersDists.pdf",sep="")  
+   pdf(filename,width=8.0,height=8.0)  
+   print(plt)
+   dev.off()
+   
+ }
 
 plotRadar <- function(systems) {
   sys <- systems[[1]]
@@ -623,7 +706,7 @@ plotRadar <- function(systems) {
     scale_fill_manual(values = cbbPalette) + 
     scale_x_discrete("F",labels=labb) +    
     scale_y_continuous(breaks=seq(0, 1.0, 0.5)) +     
-    thm 
+    thm +  scale_y_continuous(breaks=seq(0, 1.0, 0.3))  
   #filename <- paste("Distributions/",Type,"/RadarPlot.pdf",sep="")    
   #png(filename,width=2000,bg="transparent")
   #pdf(filename,width=8.0,height=4.0)  
@@ -636,18 +719,18 @@ plotRadar <- function(systems) {
 
 
 
-# # SET SYSTEM PARAMs
- if (length(args)<4) {
-  stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
- }
- IBI <- as.logical(args[1])
- MC <- as.logical(args[2])
- Alpha <- as.logical(args[3])
- reloadXML <- as.logical(args[4])
-#  IBI<-FALSE
-#  MC<-TRUE
-#  Alpha<-TRUE
-#  reloadXML <- TRUE
+# #SET SYSTEM PARAMs
+#  if (length(args)<4) {
+#   stop("Usage : MakePLOSFig IBI MC Alpha reloadXML")
+#  }
+#  IBI <- as.logical(args[1])
+#  MC <- as.logical(args[2])
+#  Alpha <- as.logical(args[3])
+#  reloadXML <- as.logical(args[4])
+ IBI<-FALSE
+ MC<-TRUE
+ Alpha<-TRUE
+ reloadXML <- FALSE
 
 IBIn <- ""
 MCn <- ""
@@ -679,23 +762,26 @@ if (reloadXML) {
    plotDistributions(DATA)
    
    # Loss Function
-   plotLoss(DATA) 
+#   plotLoss(DATA) 
+   
+   # Parameters
+ #  plotParam(DATA)
    
 #    # Radar plot
-    systems <- list(A=c(TRUE,FALSE,TRUE,FALSE),B=c(FALSE,TRUE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha   IBI, MC, MCIBI
-    p1<- plotRadar(systems)
-    systems <- list(A=c(TRUE,FALSE,FALSE,FALSE),B=c(FALSE,TRUE,FALSE,FALSE),C=c(TRUE,TRUE,FALSE,FALSE)) #310   IBI, MC, MCIBI   
-    p2<- plotRadar(systems) 
+    #systems <- list(A=c(TRUE,FALSE,TRUE,FALSE),B=c(FALSE,TRUE,TRUE,FALSE),C=c(TRUE,TRUE,TRUE,FALSE)) #alpha   IBI, MC, MCIBI
+    #p1<- plotRadar(systems)
+    #systems <- list(A=c(TRUE,FALSE,FALSE,FALSE),B=c(FALSE,TRUE,FALSE,FALSE),C=c(TRUE,TRUE,FALSE,FALSE)) #310   IBI, MC, MCIBI   
+    #p2<- plotRadar(systems) 
     
     # Extract legend from first plot    
-    legend = gtable_filter(ggplot_gtable(ggplot_build(p1)), "guide-box")     
+  #  legend = gtable_filter(ggplot_gtable(ggplot_build(p1)), "guide-box")     
 
-    filename <- paste("Distributions/RadarPlot.pdf",sep="")    
-    pdf(filename,width=8.0,height=4.0)  
-    grid.arrange(arrangeGrob(p1 + theme(legend.position="none") + ggtitle("Alpha"),
-                             p2 + theme(legend.position="none") + ggtitle("310") ),
-                 legend,widths=c(0.8, 0.2),ncol=2)
-    dev.off()
+   # filename <- paste("Distributions/RadarPlot.pdf",sep="")    
+  #  pdf(filename,width=8.0,height=4.0)  
+  #  grid.arrange(arrangeGrob(p1 + theme(legend.position="none") + ggtitle("Alpha"),
+  #                           p2 + theme(legend.position="none") + ggtitle("310") ),
+  #               legend,widths=c(0.8, 0.2),ncol=2)
+  #  dev.off()
     
 
 
