@@ -112,8 +112,8 @@ LoadData <- function() {
    
    
    if (Alpha) { 
-     #potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
-     potlist<-c("null","r12","theta","phi","vdw")
+     potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
+     #potlist<-c("null","r12","theta","phi","vdw")
    } else {
      potlist<-c("null","r12","r13","theta","phi","vdw")  
    }
