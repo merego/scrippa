@@ -27,7 +27,7 @@ ipotNparams <- DATA$ipotNparams
     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
     ymax<-which.max(distrib$y)
     EqTheta<-180.0-distrib$x[ymax]  
-    InitTheta <- 180.0 - MatrixAllParams[i,4] * 180 / pi
+    InitTheta <-  180.0-MatrixAllParams[i,4] * 180 / pi
     DistFrame[i,2] <- InitTheta
     DistFrame[i,4] <- EqTheta
   }
