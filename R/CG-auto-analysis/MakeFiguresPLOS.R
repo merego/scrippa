@@ -77,7 +77,7 @@ LoadData <- function() {
    BestIterationN <- NA
    if (MC || MCIBI) {
      BestMC <- xmlInternalTreeParse("OUTPUT/BestIteration_Output.xml");
-     BestIterationN <- as.numeric(xpathApply(BestMC, "//c_run",xmlValue))+1;
+     BestIterationN <- as.numeric(xpathApply(BestMC, "//c_run",xmlValue));
      BestIteration <- paste("OUTPUT/r",BestIterationN,sep="")     
      print(BestIterationN);
    }
@@ -88,7 +88,7 @@ LoadData <- function() {
    files <- list.files(path="OUTPUT", pattern="r*/*_Input.xml", full.names=T, recursive=TRUE)
    SortedFiles<-mixedsort(files)
    n_of_runs <- length(files)
-   
+
    
    # Load r15 only for 310  helices
    R15Dists310 <- list()
@@ -112,8 +112,8 @@ LoadData <- function() {
    
    
    if (Alpha) { 
-     potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
-     #potlist<-c("null","r12","theta","phi","vdw")
+     #potlist<-c("null","r12","r13","r14","theta","phi","vdw")  
+     potlist<-c("null","r12","theta")
    } else {
      potlist<-c("null","r12","r13","theta","phi","vdw")  
    }
@@ -184,16 +184,17 @@ LoadData <- function() {
        
        #  Loop over iterations
        for (run in 1:n_of_runs) {
+
           doc <- xmlInternalTreeParse(SortedFiles[run]);
           src <- xpathApply(doc, "//input/param")
           TmpDoc <- xmlDoc(src[[ipot]])
           
           # Check acceptance (only for MC)
-          if (MC) {
-            status <- xpathApply(TmpDoc,"//Accepted",xmlValue)[[1]] 
-          }  else {
-            status <- "true"
-          }
+      #    if (MC) {
+      #      status <- xpathApply(TmpDoc,"//Accepted",xmlValue)[[1]] 
+      #    }  else {
+      #      status <- "true"
+      #    }
           
           # Read Distribution
           filename <- paste('OUTPUT/r',run-1,'/Param',ipot-1,'.dat',sep="")
@@ -213,7 +214,7 @@ LoadData <- function() {
           Medians <- append(Medians,Median)
    
           # And for only accepted distributions (always true if IBI is used)
-           if (status=="true") {
+          # if (status=="true") {
                if ((potlist[ipot]=="theta")||(potlist[ipot]=="phi")) {
                 distrib[,1] <- distrib[,1]/pi*180.0    
                 if(IBI) {
@@ -235,7 +236,7 @@ LoadData <- function() {
              loss <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
              losses <- append(losses,loss)   
              acceptedIterations <- append(acceptedIterations,run)          
-           } # Eend if status == true (accepted only)  
+         #  } # Eend if status == true (accepted only)  
           # only for MC, these will be used to get the best parameters
           if (MC) {
            AllLossFrame[run,ipot] <- as.numeric(xpathApply(TmpDoc,"//LossFunction",xmlValue)[[1]])
@@ -730,7 +731,7 @@ plotRadar <- function(systems) {
  IBI<-FALSE
  MC<-TRUE
  Alpha<-TRUE
- reloadXML <- FALSE
+ reloadXML <- TRUE
 
 IBIn <- ""
 MCn <- ""
@@ -740,6 +741,7 @@ if (MC) MCn <- "MC"
 if (Alpha) Type <- "Alpha"
 
 StoredData <- paste("/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/",IBI,"-",MC,"-",Alpha,"-DATA.RData",sep="")
+
 
 MCIBI<-FALSE
 if (MC&&IBI) {
