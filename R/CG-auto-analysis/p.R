@@ -4,7 +4,7 @@ library("gridExtra")
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC500-kthetaLOW.RData
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC500-kthetaLOW.RData"
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC2000.RData"
-StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC10000.RData"
+StoredData <- "/home/pmereghetti/over_ssh/lpgm-pc/2014/CGautoTest/FigForPaper/3BEADS-MCMC10000.RData"
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC1000-JSok.RData"
 load(StoredData)
 thm <- theme(panel.background = element_rect(fill = 'white'),
