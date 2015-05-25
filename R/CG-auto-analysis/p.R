@@ -4,7 +4,8 @@ library("gridExtra")
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC500-kthetaLOW.RData
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC500-kthetaLOW.RData"
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC2000.RData"
-StoredData <- "/home/pmereghetti/over_ssh/lpgm-pc/2014/CGautoTest/FigForPaper/3BEADS-MCMC10000.RData"
+#StoredData <- "/home/pmereghetti/over_ssh/lpgm-pc/2014/CGautoTest/FigForPaper/3BEADS-MCMC10000.RData"
+StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC10000.RData"
 #StoredData <- "/home/pmereghetti/data/projects/2014/CGautoTest/FigForPaper/3BEADS-MCMC1000-JSok.RData"
 load(StoredData)
 thm <- theme(panel.background = element_rect(fill = 'white'),
@@ -57,15 +58,15 @@ ipotNparams <- DATA$ipotNparams
     x<-distrib$x
     y<-distrib$y 
     estm<-x[ymax]    
-    #y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 0.5, m=estm))
+    y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 0.5, m=estm))
     ##y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 0.2, m=estm))
-    #s<-summary(y.fit)
-    #EqMean<-s$parameters[2]
-    #EqStDev<-s$parameters[1]
+    s<-summary(y.fit)
+    EqMean<-s$parameters[2]
+    EqStDev<-s$parameters[1]
     Init <- MatrixAllParams[i,2]
     DistFrame[i,1] <- Init
-    DistFrame[i,3] <- 1.2 #EqMean
-    DistFrame[i,4] <- 1.2 #EqStDev    
+    DistFrame[i,3] <- EqMean
+    DistFrame[i,4] <- EqStDev    
     #DistFrame[i,7] <- (5.4450-EqMean)^4 + (0.1795-EqStDev)^2
     dx<-abs(diff(x)[1])
     DistFrame[i,7] <- sum((refDistribs[[1]]$y - y)^2) * dx
@@ -78,16 +79,16 @@ ipotNparams <- DATA$ipotNparams
     x<- distrib$x
     y<-distrib$y
     estm<-x[ymax]    
-    #y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 1.0, m=estm)) # 5
+    y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 1.0, m=estm)) # 5
     ##y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 2.0, m=estm))
-    #s<-summary(y.fit)
-    #EqMean<-s$parameters[2]
-    #EqStDev<-s$parameters[1]
+    s<-summary(y.fit)
+    EqMean<-s$parameters[2]
+    EqStDev<-s$parameters[1]
     Init <-  MatrixAllParams[i,4] * 180 / pi
     #Init <-  180.0-MatrixAllParams[i,11] * 180 / pi
     DistFrame[i,2] <- Init
-    DistFrame[i,5] <- 1.0 #EqMean
-    DistFrame[i,6] <- 1.0 #EqStDev
+    DistFrame[i,5] <- EqMean
+    DistFrame[i,6] <- EqStDev
     #DistFrame[i,8] <- (91.055-EqMean)^4 + (3.704-EqStDev)^2
     dx<-abs(diff(x)[1])
     DistFrame[i,8] <- sum((refDistribs[[ipot]]$y - y)^2) * dx
