@@ -48,6 +48,30 @@ MatrixAllParams <- DATA$MatrixAllParams
 ipotOpti <- DATA$ipotOpti
 ipotNparams <- DATA$ipotNparams
   
+x<-refDistribs[[1]]$x
+y<-refDistribs[[1]]$y
+ymax<-which.max(y)
+estm<-x[ymax]    
+y[y<0.0001]<-0.0001
+x.fit <- x[x<7 & x>4]
+y.fit <- y[x<7 & x>4]      
+BI <- - kb * T * log(y.fit)
+BI.fit <- nls(BI ~ 1/2 * k * (x.fit - m)^2 + c, start = list(k = 0.5, m=estm, c=0.01))
+kr.fit.ref <- summary(BI.fit)$parameters[1]
+r.fit.ref <- summary(BI.fit)$parameters[2]
+
+x<-refDistribs[[2]]$x/180*pi
+y<-refDistribs[[2]]$y
+estm<-x[ymax]  
+ymax<-which.max(y)
+y[y<0.0001]<-0.0001
+x.fit <- x[x<1.7453 & x>1.3962]
+y.fit <- y[x<1.7453 & x>1.3962]            
+BI <- - kb * T * log(y.fit)
+BI.fit <- nls(BI ~ 1/2 * k * (x.fit - m)^2 + c, start = list(k = 10, m=estm, c=0.01))
+ktheta.fit.ref <- summary(BI.fit)$parameters[1]
+theta.fit.ref <- summary(BI.fit)$parameters[2]
+
   ipot<-1
   last <- length(DistribALLSpl[[ipot]]$dists)
   step <- 1
@@ -58,15 +82,20 @@ ipotNparams <- DATA$ipotNparams
     x<-distrib$x
     y<-distrib$y 
     estm<-x[ymax]    
-    y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 0.5, m=estm))
+    y[y<0.0001]<-0.0001
+    x.fit <- x[x<8 & x>4]
+    y.fit <- y[x<8 & x>4]            
+    BI <- - kb * T * log(y.fit)
+    BI.fit <- nls(BI ~ 1/2 * k * (x.fit - m)^2 + c, start = list(k = 0.5, m=estm, c=0.01))
+    #y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 0.5, m=estm))
     ##y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 0.2, m=estm))
-    s<-summary(y.fit)
-    EqMean<-s$parameters[2]
-    EqStDev<-s$parameters[1]
+    #s<-summary(y.fit)
+    k.fit <- summary(BI.fit)$parameters[1]
+    eq.fit <- summary(BI.fit)$parameters[2]
     Init <- MatrixAllParams[i,2]
     DistFrame[i,1] <- Init
-    DistFrame[i,3] <- EqMean
-    DistFrame[i,4] <- EqStDev    
+    DistFrame[i,3] <- eq.fit
+    DistFrame[i,4] <- k.fit
     #DistFrame[i,7] <- (5.4450-EqMean)^4 + (0.1795-EqStDev)^2
     dx<-abs(diff(x)[1])
     DistFrame[i,7] <- sum((refDistribs[[1]]$y - y)^2) * dx
@@ -76,45 +105,61 @@ ipotNparams <- DATA$ipotNparams
   for (i in seq(1,last,by=step) ) {    
     distrib <- DistribALLSpl[[ipot]]$dists[[i]]
     ymax<-which.max(distrib$y)
-    x<- distrib$x
-    y<-distrib$y
+    x<-distrib$x/180*pi
+    y<-distrib$y 
     estm<-x[ymax]    
-    y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 1.0, m=estm)) # 5
+    y[y<0.0001]<-0.0001
+    x.fit <- x[x<1.7453 & x>1.3962]
+    y.fit <- y[x<1.7453 & x>1.3962]           
+    BI <- - kb * T * log(y.fit)
+    BI.fit <- nls(BI ~ 1/2 * k * (x.fit - m)^2 + c, start = list(k = 0.5, m=estm, c=0.01))
+    #y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 1.0, m=estm)) # 5
     ##y.fit <- nls(y ~ 1/(s*sqrt(2*pi)) * exp (- (x - m)^2 / (2*s^2) ), start = list(s = 2.0, m=estm))
-    s<-summary(y.fit)
-    EqMean<-s$parameters[2]
-    EqStDev<-s$parameters[1]
+    #s<-summary(y.fit)
+    k.fit <- summary(BI.fit)$parameters[1]
+    eq.fit <- summary(BI.fit)$parameters[2]
     Init <-  MatrixAllParams[i,4] * 180 / pi
     #Init <-  180.0-MatrixAllParams[i,11] * 180 / pi
     DistFrame[i,2] <- Init
-    DistFrame[i,5] <- EqMean
-    DistFrame[i,6] <- EqStDev
+    DistFrame[i,5] <- eq.fit
+    DistFrame[i,6] <- k.fit
     #DistFrame[i,8] <- (91.055-EqMean)^4 + (3.704-EqStDev)^2
     dx<-abs(diff(x)[1])
     DistFrame[i,8] <- sum((refDistribs[[ipot]]$y - y)^2) * dx
   }
-  colnames(DistFrame)<-c("InitR13","InitTheta","EqR13Mean","EqR13StDev","EqThetaMean","EqThetaStDev","cLossR","cLossA")
+  colnames(DistFrame)<-c("InitR13","InitTheta","r13.fit","k13.fit","theta.fit","ktheta.fit","cLossR","cLossA")
   
   AvgLoss<-vector()#rowMeans(AllLossFrame[,c(2:3)]) * range01(1 - abs(AllLossFrame[,2]-AllLossFrame[,3])^2)
   for (i in 1:length(AllLossFrame[,2])) {
-    if (AllLossFrame[i,2] < 0.25 & AllLossFrame[i,3] < 0.25) {
+  #  if (AllLossFrame[i,2] < 0.25 & AllLossFrame[i,3] < 0.25) {
        AvgLoss[i] <- (AllLossFrame[i,2] + AllLossFrame[i,3] ) * 0.5
        
-    } else {
-      AvgLoss[i] <- 1      
-   }
+  #  } else {
+  #    AvgLoss[i] <- 1      
+  # }
   }
+  AvgLoss[1] <- mean(AvgLoss[-1])
   DistFrame$Loss<-AvgLoss
   DistFrame$k13<-MatrixAllParams[,1]
   DistFrame$ktheta<-MatrixAllParams[,3]
+  DistFrame$newLoss<-DistFrame$ktheta.fit-ktheta.fit.ref
+
+# kTheta vs kr13 Initial
+alpha <- 3.8^2 * (cos(1.57/2))^2 # Vale == to ( 3.8 * sin(1.57) / sqrt(2- 2*cos(1.57)) ) ^2 (Paolo)
+ggplot(data=DistFrame) +
+  geom_point(aes(ktheta,k13,color=newLoss,size=(1/newLoss)^2)) + 
+  geom_abline(intercept = 84, slope=-alpha, size=1.1, color="black") +
+  geom_abline(intercept = 84, slope=-alpha, size=1.0, color=c25[3]) + 
+  thm + 
+  scale_color_gradientn(name="JS",colours=cbbPalette) + ggtitle("Jensen-Shannon Loss") + scale_size_continuous(name="1/JS")
   #DistFrame$ktheta<-MatrixAllParams[-1,10]
 
-kEqR13<-(kb*T)/(sqrt(2*pi) * DistFrame$EqR13StDev^3)
-kEqTheta<-(kb*T)/(sqrt(2*pi) * (DistFrame$EqThetaStDev/10)^3)
-DistFrame$kEqTheta<-kEqTheta
-DistFrame$kEqR13<-kEqR13
-
-  DistFrame[1,]$Loss <- 0
+# kEqR13<-(kb*T)/(sqrt(2*pi) * DistFrame$EqR13StDev^3)
+# kEqTheta<-(kb*T)/(sqrt(2*pi) * (DistFrame$EqThetaStDev/10)^3)
+# DistFrame$kEqTheta<-kEqTheta
+# DistFrame$kEqR13<-kEqR13
+# 
+#   DistFrame[1,]$Loss <- 0
 
 
 # # Theta vs r13 equilib.
