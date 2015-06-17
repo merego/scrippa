@@ -21,11 +21,12 @@ c10 <- c("#a6cee3",  "#1f78b4",   "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 # Normalize distribution
-pnorm <- function(p) {
+pnorm <- function(p,type) {
   #p.ks <- locpoly(p[,1],p[,2],gridsize=600,bandwidth = 0.05) 
   #x<-p.ks$x
   #y<-p.ks$y  
-  x<-p[,1]
+  x<-p[,1] 
+  x <- ConvertUnit(x,type)
   y<-p[,2]
   dx <- diff(x)[1]
   y[is.na(y)]<-0
@@ -119,6 +120,7 @@ PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
   return(plt)
 }
 
+# Load dists
 LoadDist <- function(idx) {
   dir <- "../test_310/test09/OUTPUT/r"
   filename <- paste(dir,idx,'/Param1.dat',sep="")
@@ -131,12 +133,14 @@ LoadDist <- function(idx) {
   p4 <- as.data.frame(read.table(filename))
   filename <- paste(dir,idx,'/Param15.dat',sep="")
   p15 <- as.data.frame(read.table(filename))
-  df <- data.frame(rbind(pnorm(p1),pnorm(p2),pnorm(p3),pnorm(p4),pnorm(p15)))
+  df <- data.frame(rbind(pnorm(p1,"r13"),pnorm(p2,"r14"),pnorm(p3,"theta"),pnorm(p4,"phi"),pnorm(p15,"r15")))
   df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)),rep("r15",nrow(p15)))
   colnames(df) <- c("x","y","id")
   return(df)
 }
 
+
+# Load reference dists
 LoadRefDist <- function(idx) {
   filename <- paste("../../TestCorrelations-1/INPUT/Param1.dat",sep='')    
   p1 <- read.table(filename)
@@ -152,11 +156,58 @@ LoadRefDist <- function(idx) {
   # R15
   filename <- paste("../../TestCorrelations-1/INPUT/Param15.dat",sep='')    
   p5 <- read.table(filename)
-  df <- data.frame(rbind(pnorm(p1),pnorm(p2),pnorm(p3),pnorm(p4),pnorm(p15)))
+  df <- data.frame(rbind(pnorm(p1,"r13"),pnorm(p2,"r14"),pnorm(p3,"theta"),pnorm(p4,"phi"),pnorm(p15,"r15")))
   df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)),rep("r15",nrow(p15)))
   colnames(df) <- c("x","y","id")
   return(df)
 }
+
+
+# Set specific plot ranges for each term
+SetRanges <- function(type) {
+  switch(type,
+         r13 = c(4.5,6.5),
+         r14 = c(4.0,6.5),
+         r15 = c(5.0,8.0),
+         theta = c(70,110),
+         phi = c(20,80)) 
+}
+
+# Convert Units
+ConvertUnit <- function(x,type) {
+  switch(type,
+         r13 = x,
+         r14 = x,
+         r15 = x,
+         theta = rad2deg(x),
+         phi = rad2deg(x))
+}
+
+# Set Labels
+SetLabels <- function(type) {
+  switch(type,
+         r13 = paste(expression(r["i,i+2"],"(A)",sep=" ")),
+         r14 = paste(expression(r["i,i+3"],"(A)",sep=" ")),
+         r15 = paste(expression(r["i,i+4"],"(A)",sep=" ")),
+         theta = paste(expression(theta),"(Deg)",sep=" "),
+         phi = paste(expression(phi),"(Deg)",sep=" "))
+}
+
+# Plot dists
+PlotDists <- function(df,type) {
+  r <- SetRanges(type)  
+  xlab <- SetLabels(type)
+  ggplot(data=df[df$id==type,]) + 
+    geom_line(aes(x,y,group=run,colour=AvgLoss),size=1) + 
+    geom_line(data=df.ref[df.ref$id==type,],aes(x,y),size=2) + 
+    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=2,color="black") + 
+    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.8,color="#ff5eff") + 
+    xlim(r[1],r[2]) + 
+    xlab(xlab) +
+    ylab("") +
+    thm2
+}
+  
 
 ##########
 
@@ -185,12 +236,12 @@ dev.off()
 
 
 # Load N randomly sampled distributions
-ridx <- sample(100,10)-1 # 0 to N included
+ridx <- sample(10,8)-1 # 0 to N included 
 GlobalIdx <- 0
 for (idx in ridx) {
   tmp <- LoadDist(idx)
   tmp$run <- rep(idx,nrow(tmp)) # Add run information
-  tmp$AvgLoss <- rep(Surface$AvgLoss[idx],nrow(tmp)) # Add average loss
+  tmp$AvgLoss <- rep(Surface$AvgLoss[idx+1],nrow(tmp)) # Add average loss
   if (GlobalIdx == 0) {    
     df <- tmp
   } else {
@@ -202,19 +253,13 @@ colnames(df) <- c("x","y","id","run","AvgLoss")
 
 # Best Iteration distributions
 bestr <- which.min(Surface$AvgLoss)
-bestr <- 20
+bestr <- 5
 df.best <- LoadDist(bestr)
 
 
 # Ref distributions for 310
-df.ref <- LoadRefDist()
+#df.ref <- LoadRefDist()
+df.ref <- df.best
 
 # Plot distributions
-selection="r13"
-ggplot(data=df[df$id==selection,]) + 
-  geom_line(aes(x,y,group=run,colour=AvgLoss),size=1) + 
-  geom_line(data=df.ref[df.ref$id==selection,],aes(x,y),size=2) + 
-  geom_line(data=df.best[df.best$id==selection,],aes(x,y),size=2,color="black") + 
-  geom_line(data=df.best[df.best$id==selection,],aes(x,y),size=1.8,color="#ff5eff") + 
-  xlim(4,7) +
-  thm2
+PlotDists(df,"r13")
