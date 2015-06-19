@@ -186,9 +186,9 @@ ConvertUnit <- function(x,type) {
 # Set Labels
 SetLabels <- function(type) {
   switch(type,
-         r13 = paste(expression(r["i,i+2"],"(A)",sep=" ")),
-         r14 = paste(expression(r["i,i+3"],"(A)",sep=" ")),
-         r15 = paste(expression(r["i,i+4"],"(A)",sep=" ")),
+         r13 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
+         r14 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
+         r15 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
          theta = paste(expression(theta),"(Deg)",sep=" "),
          phi = paste(expression(phi),"(Deg)",sep=" "))
 }
