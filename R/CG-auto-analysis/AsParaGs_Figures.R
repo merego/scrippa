@@ -120,9 +120,9 @@ PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
   return(plt)
 }
 
-# Load dists
-LoadDist <- function(idx) {
-  dir <- "../test_310/test09/OUTPUT/r"
+# Load dists 
+LoadDist <- function(idx,TestIndex) {
+  dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
   filename <- paste(dir,idx,'/Param1.dat',sep="")
   p1 <- as.data.frame(read.table(filename))
   filename <- paste(dir,idx,'/Param2.dat',sep="")
@@ -239,7 +239,7 @@ dev.off()
 ridx <- sample(10,8)-1 # 0 to N included 
 GlobalIdx <- 0
 for (idx in ridx) {
-  tmp <- LoadDist(idx)
+  tmp <- LoadDist(idx,TestIndex)
   tmp$run <- rep(idx,nrow(tmp)) # Add run information
   tmp$AvgLoss <- rep(Surface$AvgLoss[idx+1],nrow(tmp)) # Add average loss
   if (GlobalIdx == 0) {    
@@ -254,7 +254,8 @@ colnames(df) <- c("x","y","id","run","AvgLoss")
 # Best Iteration distributions
 bestr <- which.min(Surface$AvgLoss)
 bestr <- 5
-df.best <- LoadDist(bestr)
+TestIndex <- 9
+df.best <- LoadDist(bestr,TestIndex)
 
 
 # Ref distributions for 310
