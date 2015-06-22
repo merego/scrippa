@@ -11,7 +11,7 @@ thm2<- theme(panel.background = element_rect(fill = 'white'),
              axis.text.y  = element_text(angle=0, vjust=0.5, size=12, face="bold", colour="black"),
              axis.title.y = element_text(angle=90, vjust=0.5, size=12, face="bold", colour="black"),
              plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
-             legend.title  = element_blank(),
+             legend.title  = element_text(angle=0, vjust=0.5, size=12, face="bold", colour="black"),
              legend.text = element_text(lineheight=3, face="bold", color="black", size=12),
              strip.text = element_text(lineheight=3, face="bold", color="black", size=12)) # Text for facets header
 
@@ -90,7 +90,7 @@ PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
     y <- dfmin[,3]
     x <- dfmin[,1]
     initslope <- (alpha(theta0r))^2 # Theoretical slope
-    fit <- nls(y ~ a + b * x, algorithm = "port", start=c(a=120, b=-initslope), upper=c(a=150, b=-(initslope-0.1)), lower=c(a=100, b=-(initslope+0.1)) ) # Fit with 
+    fit <- nls(y ~ a + b * x, algorithm = "port", start=c(a=120, b=-initslope), upper=c(a=150, b=-(initslope-0.1)), lower=c(a=20, b=-(initslope+0.1)) ) # Fit with 
     keff <- summary(fit)$parameters[1]
     slope <- initslope
   } else {
@@ -112,11 +112,13 @@ PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
     thm2
   
   # Add proper xlab, ylab
-  if (TestIndex < 7 || TestIndex == 9) {
-    plt <- plt + xlab("kr [kcal mol-1 A-2]") + ylab("ktheta [kcal mol-1 rad-2]")
+  ylabel <- expression ( paste ( k[theta], " [ kcal ", mol^"-1" , rad^"-1", "]" , sep = " ")   )
+  if (TestIndex == 7 || TestIndex == 8 || TestIndex == 12 || TestIndex == 13) {    
+    xlabel <- expression ( paste ( epsilon[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )
   } else {
-    plt <- plt + xlab("epsi [kcal mol-1 A-2]") + ylab("ktheta [kcal mol-1 rad-2]")
+    xlabel <- expression ( paste ( k[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )    
   }
+  plt <- plt + xlab(xlabel) + ylab(ylabel)    
   return(plt)
 }
 
@@ -142,20 +144,20 @@ LoadDist <- function(idx,TestIndex) {
 
 # Load reference dists
 LoadRefDist <- function(idx) {
-  filename <- paste("../../TestCorrelations-1/INPUT/Param1.dat",sep='')    
+  filename <- "RefDists/Param1.dat"  
   p1 <- read.table(filename)
   # R14
-  filename <- paste("../../TestCorrelations-1/INPUT/Param2.dat",sep='')    
+  filename <- "RefDists/Param2.dat"    
   p2 <- read.table(filename)
   # Theta
-  filename <- paste("../../TestCorrelations-1/INPUT/Param3.dat",sep='')    
+  filename <- "RefDists/Param3.dat"    
   p3 <- read.table(filename)
   # Phi
-  filename <- paste("../../TestCorrelations-1/INPUT/Param4.dat",sep='')    
+  filename <- "RefDists/Param4.dat"    
   p4 <- read.table(filename)
   # R15
-  filename <- paste("../../TestCorrelations-1/INPUT/Param15.dat",sep='')    
-  p5 <- read.table(filename)
+  filename <- "RefDists/Param15.dat"    
+  p15 <- read.table(filename)
   df <- data.frame(rbind(pnorm(p1,"r13"),pnorm(p2,"r14"),pnorm(p3,"theta"),pnorm(p4,"phi"),pnorm(p15,"r15")))
   df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)),rep("r15",nrow(p15)))
   colnames(df) <- c("x","y","id")
@@ -167,10 +169,10 @@ LoadRefDist <- function(idx) {
 SetRanges <- function(type) {
   switch(type,
          r13 = c(4.5,6.5),
-         r14 = c(4.0,6.5),
-         r15 = c(5.0,8.0),
+         r14 = c(4.5,7.0),
+         r15 = c(6.0,10.0),
          theta = c(70,110),
-         phi = c(20,80)) 
+         phi = c(30,100)) 
 }
 
 # Convert Units
@@ -187,32 +189,51 @@ ConvertUnit <- function(x,type) {
 SetLabels <- function(type) {
   switch(type,
          r13 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
-         r14 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
-         r15 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
+         r14 = expression ( paste(r["i,i+3"], " [", ring(A), "]" ) ),
+         r15 = expression ( paste(r["i,i+4"], " [", ring(A), "]" ) ),
          theta = paste(expression(theta),"(Deg)",sep=" "),
          phi = paste(expression(phi),"(Deg)",sep=" "))
 }
 
 # Plot dists
-PlotDists <- function(df,type) {
+PlotDists <- function(df,df.best,df.ref,type) {
   r <- SetRanges(type)  
   xlab <- SetLabels(type)
-  ggplot(data=df[df$id==type,]) + 
-    geom_line(aes(x,y,group=run,colour=AvgLoss),size=1) + 
-    geom_line(data=df.ref[df.ref$id==type,],aes(x,y),size=2) + 
-    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=2,color="black") + 
-    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.8,color="#ff5eff") + 
-    xlim(r[1],r[2]) + 
+  
+  
+  # Get some quantiles to create non-linear color scale
+  qn = quantile(df$AvgLoss,c(0.01,0.2,0.5,0.7,0.99))
+  qn01<-rescale(qn)
+  
+  # Get max y within restricted range
+  xx <- df[df$id==type,]
+  maxy <- max( xx[ xx[,1] < r[2] & xx[,1] > r[1], 2] )
+  
+  plt <- ggplot(data=df[df$id==type,]) + 
+    geom_line(aes(x,y,group=run,colour=AvgLoss,alpha=1/AvgLoss),size=1) + 
+    geom_line(data=df.ref[df.ref$id==type,],aes(x,y),size=1.5) + 
+    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.8,color="black") + 
+    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.5,color="#ff5eff") + 
+    scale_colour_gradientn(name="Average\nLoss", colours= topo.colors(20), values=c(qn01)) +
+    scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right 
+    scale_y_continuous(limits=c(0,maxy)) +
+    scale_alpha_continuous(guide=FALSE) +   
     xlab(xlab) +
     ylab("") +
     thm2
+  filename <- paste("Dist_",type,".png",sep="")
+  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+  print(plt)
+  dev.off()
+  
+  return(arrangeGrob(plt))
 }
   
 
 ##########
 
 # Correlation plots for SI
-for (TestIndex in seq(2,10)) {
+for (TestIndex in seq(2,13)) {
   REP <- ReadData(TestIndex)
   Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$los)
   colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
@@ -223,6 +244,7 @@ for (TestIndex in seq(2,10)) {
   dev.off() 
 }
 
+############################################################################################
 # Correlation plot Main text (Test = 9)
 TestIndex <- 9
 REP <- ReadData(TestIndex)
@@ -234,33 +256,77 @@ png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res
 print(plt)
 dev.off() 
 
+# Check ergodicity of MCMC
+lambda<-0.08
+beta<-1/lambda
+fith<-hist(REP$los,25)
+dx <- diff(fith$mids)[1]
+theoP <- exp(-beta * fith$mids)/dx
+dfloss <- data.frame(x.simP=fith$mids, y.simP=fith$density, y.theoP=theoP)
+plt <- ggplot(dfloss) + geom_line(aes(x=x.simP,y=y.simP),size=2) + 
+  geom_line(aes(x=x.simP,y=y.theoP),size=2,col="red") + 
+  xlab("Loss") + ylab("P(Loss)")  + thm2
+filename <- sprintf("ErgodicityTest_%02d.png",TestIndex)
+png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+print(plt)
+dev.off() 
 
-# Load N randomly sampled distributions
-ridx <- sample(10,8)-1 # 0 to N included 
-GlobalIdx <- 0
-for (idx in ridx) {
-  tmp <- LoadDist(idx,TestIndex)
-  tmp$run <- rep(idx,nrow(tmp)) # Add run information
-  tmp$AvgLoss <- rep(Surface$AvgLoss[idx+1],nrow(tmp)) # Add average loss
-  if (GlobalIdx == 0) {    
-    df <- tmp
-  } else {
-    df <- rbind(df,tmp)
-  }
-  GlobalIdx <- GlobalIdx + 1
+
+############################################################################################
+# Distribution plot Main text (Test = 13)
+# Load distributions from a sample of N runs from Test = 13
+# Set reload TRUE if you want to sample another sample,
+# however, it you need to have the raw simulations data in ../test13/ 
+# 
+reload <- FALSE
+TestIndex <- 13
+REP <- ReadData(TestIndex)
+if (reload) {
+  ridx <- sample(max(REP$Run),100)-1 # 0 to N included 
+   GlobalIdx <- 0
+   for (idx in ridx) {
+     tmp <- LoadDist(idx,TestIndex)
+     tmp$run <- rep(idx,nrow(tmp)) # Add run information
+     tmp$AvgLoss <- rep(REP[REP$Run==idx,]$los,nrow(tmp)) # Add average loss
+     if (GlobalIdx == 0) {    
+       df <- tmp
+     } else {
+       df <- rbind(df,tmp)
+     }
+     GlobalIdx <- GlobalIdx + 1
+   }
+   colnames(df) <- c("x","y","id","run","AvgLoss")
+  
+  # Best Iteration distributions
+  bestr <- REP[which.min(REP$los),]$Run
+  df.best <- LoadDist(bestr,TestIndex)
+  
+  
+  # Ref distributions for 310
+  df.ref <- LoadRefDist()  
+  
+  # Store dfs  
+  save(file="dfTest13.Rdata",df)
+  save(file="df.ref.Rdata",df.ref)
+  save(file="dfTest13.best.Rdata",df.best)
+  
+} else {
+  
+  # Load df
+  load(file="dfTest13.Rdata")  
+  load(file="df.ref.Rdata")
+  load(file="dfTest13.best.Rdata")
 }
-colnames(df) <- c("x","y","id","run","AvgLoss")
-
-# Best Iteration distributions
-bestr <- which.min(Surface$AvgLoss)
-bestr <- 5
-TestIndex <- 9
-df.best <- LoadDist(bestr,TestIndex)
 
 
-# Ref distributions for 310
-#df.ref <- LoadRefDist()
-df.ref <- df.best
 
 # Plot distributions
-PlotDists(df,"r13")
+p13 <- PlotDists(df,df.best,df.ref,"r13")
+p14 <- PlotDists(df,df.best,df.ref,"r14")
+p15 <- PlotDists(df,df.best,df.ref,"r15")
+ptheta <- PlotDists(df,df.best,df.ref,"theta")
+pphi <- PlotDists(df,df.best,df.ref,"phi")
+
+# Plot Loss
+
+
