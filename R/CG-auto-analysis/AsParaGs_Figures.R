@@ -327,6 +327,53 @@ p15 <- PlotDists(df,df.best,df.ref,"r15")
 ptheta <- PlotDists(df,df.best,df.ref,"theta")
 pphi <- PlotDists(df,df.best,df.ref,"phi")
 
-# Plot Loss
+###################################################
+# Feature selection 
+library("caret")
+
+# Load report
+TestIndex <- 13
+REP <- ReadData(TestIndex)
+
+# Sample 
+ridx <- sample(max(REP$Run),1000)
+Col.Names <- colnames(REP)
+Col.index <- grep("Param",Col.Names) 
+XX <- data.frame(REP[ridx,Col.index])
+YY <- REP$los[ridx]
+
+# Remove constant variance columns
+XX.clean <- XX[,apply(XX,2,var) != 0]
+Constant.Variance.Names <- colnames(XX)[apply(XX,2,var)==0]
+cat("These parameters have constant variance : ", Constant.Variance.Names, "\n")
+df <- data.frame(XX.clean,YY)
+
+# Set resampling method 
+control <- trainControl(method="repeatedCV", number=10, repeats = 3, returnResamp = "all")
+
+# Fitting support vector machine with radial basis kernel.
+fit.svmRadial <- train(YY ~., 
+                       data=df, 
+                       method="svmRadial", 
+                       tuneLength=5,  
+                       preProcess="scale", 
+                       trControl=control, 
+                       importance=TRUE)
+varImp(fit.svmRadial)
+
+# Profiling
+# svmrfe<-rfe(XX.clean, YY, sizes=c(1,2), rfeControl = rfeControl(functions = caretFuncs,method="repeatedCV", number=10, repeats = 3, returnResamp = "all" ), method = "svmRadial")
+# xyplot(svmrfe)
+
+# Check predition quality 
+YY.pred <- predict(fit.svmRadial)
+cor(YY,YY.pred)
+lmfit.sum <- summary(lm(YY.pred ~ YY))
+Adj.R2 <- s$adj.r.squared 
+Fstat <- s$fstatistic
+
+
+
+
 
 
