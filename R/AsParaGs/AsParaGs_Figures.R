@@ -1,5 +1,8 @@
 library("ggplot2")
 library("scales")
+library("gridExtra")
+library("KernSmooth")
+
 
 # General theme for PNG (ok for 600 dpi resolution 6.5x3.25in)
 thm2<- theme(panel.background = element_rect(fill = 'white'),
@@ -22,12 +25,16 @@ cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 
 # Normalize distribution
 pnorm <- function(p,type) {
-  #p.ks <- locpoly(p[,1],p[,2],gridsize=600,bandwidth = 0.05) 
-  #x<-p.ks$x
-  #y<-p.ks$y  
-  x<-p[,1] 
-  x <- ConvertUnit(x,type)
-  y<-p[,2]
+  smoothing <- TRUE
+  if (smoothing) {
+    p.ks <- locpoly(p[,1],p[,2],bandwidth = 0.05) 
+    x<-p.ks$x
+    y<-p.ks$y  
+  } else {
+    x<-p[,1] 
+    x <- ConvertUnit(x,type)
+    y<-p[,2]
+  }
   dx <- diff(x)[1]
   y[is.na(y)]<-0
   Z <- sum(y)*dx
@@ -67,16 +74,11 @@ theta0d <- 88.0 # deg
 theta0r <- deg2rad(theta0d) # rad
 r0 <- theta2r(theta0r) # A
 
-# Read report_XX.dat and  AvgLossXX.dat
+# Read reportXX.dat 
 # XX == TestIndex
 ReadData <- function(TestIndex) {
- filename <- sprintf("report_%02d.dat",TestIndex)
- tmp<-read.table(filename,header=TRUE)
- filename <- sprintf("AvgLoss%02d.dat",TestIndex)
- los<-read.table(filename)[,1]
- REP <- cbind(tmp,los)
- rm(tmp)
- rm(los)
+ filename <- sprintf("report%02d.dat",TestIndex)
+ REP <- read.table(filename,header=TRUE)
  return(REP)
 }
 
@@ -106,7 +108,7 @@ PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
   plt <- ggplot(Surface) + geom_point(aes(kr,ktheta,colour=AvgLoss),size=0.5) +
     geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") +
     geom_point(data=dfmin,aes(kr,ktheta),colour="black",size=1) +
-    scale_colour_gradientn(colours= topo.colors(20), values=c(qn01)) +
+    scale_colour_gradientn(name="Average\nLoss", colours= topo.colors(20), values=c(qn01)) +
     scale_x_continuous(expand=c(0.01,0.01)) + # remove white spaces left right
     scale_y_continuous(expand=c(0.01,0.01)) + # remove white spaces bottom top
     thm2
@@ -134,16 +136,21 @@ LoadDist <- function(idx,TestIndex) {
   filename <- paste(dir,idx,'/Param4.dat',sep="")
   p4 <- as.data.frame(read.table(filename))
   filename <- paste(dir,idx,'/Param15.dat',sep="")
-  p15 <- as.data.frame(read.table(filename))
-  df <- data.frame(rbind(pnorm(p1,"r13"),pnorm(p2,"r14"),pnorm(p3,"theta"),pnorm(p4,"phi"),pnorm(p15,"r15")))
-  df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)),rep("r15",nrow(p15)))
+  p15 <- as.data.frame(read.table(filename))  
+  p1.norm <- pnorm(p1,"r13")
+  p2.norm <- pnorm(p2,"r14")
+  p3.norm <- pnorm(p3,"theta")
+  p4.norm <- pnorm(p4,"phi")
+  p15.norm <- pnorm(p15,"r15")
+  df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
+  df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
   colnames(df) <- c("x","y","id")
   return(df)
 }
 
 
 # Load reference dists
-LoadRefDist <- function(idx) {
+LoadRefDist <- function() {
   filename <- "RefDists/Param1.dat"  
   p1 <- read.table(filename)
   # R14
@@ -156,10 +163,42 @@ LoadRefDist <- function(idx) {
   filename <- "RefDists/Param4.dat"    
   p4 <- read.table(filename)
   # R15
-  filename <- "RefDists/Param15.dat"    
+  filename <- "RefDists/Param15.dat"      
+  p15 <- read.table(filename)  
+  p1.norm <- pnorm(p1,"r13")
+  p2.norm <- pnorm(p2,"r14")
+  p3.norm <- pnorm(p3,"theta")
+  p4.norm <- pnorm(p4,"phi")
+  p15.norm <- pnorm(p15,"r15")
+  df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
+  df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
+  colnames(df) <- c("x","y","id")
+  return(df)
+}
+
+# Load dists Giulia
+LoadDistGiulia <- function() {
+  filename <- "DistsGiulia/r13_HOOVER.dat"  
+  p1 <- read.table(filename)
+  # R14
+  filename <- "DistsGiulia/r14_HOOVER.dat"     
+  p2 <- read.table(filename)
+  # Theta
+  filename <- "DistsGiulia/bondang_HOOVER.deg.dat"  
+  p3 <- read.table(filename)
+  # Phi
+  filename <- "DistsGiulia/dihang_HOOVER.deg.dat"    
+  p4 <- read.table(filename)
+  # R15
+  filename <- "DistsGiulia/r15_HOOVER.dat"  
   p15 <- read.table(filename)
-  df <- data.frame(rbind(pnorm(p1,"r13"),pnorm(p2,"r14"),pnorm(p3,"theta"),pnorm(p4,"phi"),pnorm(p15,"r15")))
-  df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)),rep("r15",nrow(p15)))
+  p1.norm <- pnorm(p1,"r13")
+  p2.norm <- pnorm(p2,"r14")
+  p3.norm <- pnorm(p3,"theta")
+  p4.norm <- pnorm(p4,"phi")
+  p15.norm <- pnorm(p15,"r15")
+  df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
+  df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
   colnames(df) <- c("x","y","id")
   return(df)
 }
@@ -172,7 +211,17 @@ SetRanges <- function(type) {
          r14 = c(4.5,7.0),
          r15 = c(6.0,10.0),
          theta = c(70,110),
-         phi = c(30,100)) 
+         phi = c(-180,180)) 
+}
+
+# Set specific plot ranges for each term
+SetRangesGiuliaCheck <- function(type) {
+  switch(type,
+         r13 = c(3,8),#r13 = c(4.5,6.5),
+         r14 = c(2,12),#r14 = c(4.5,7.0),
+         r15 = c(6.0,10.0),#r15 = c(6.0,10.0),
+         theta = c(60,170),#theta = c(70,110),
+         phi = c(-180,180)) #phi = c(30,100)) 
 }
 
 # Convert Units
@@ -196,7 +245,8 @@ SetLabels <- function(type) {
 }
 
 # Plot dists
-PlotDists <- function(df,df.best,df.ref,type) {
+PlotDists <- function(df,df.best,df.ref,df.Giu,type) {
+    
   r <- SetRanges(type)  
   xlab <- SetLabels(type)
   
@@ -210,66 +260,118 @@ PlotDists <- function(df,df.best,df.ref,type) {
   maxy <- max( xx[ xx[,1] < r[2] & xx[,1] > r[1], 2] )
   
   plt <- ggplot(data=df[df$id==type,]) + 
-    geom_line(aes(x,y,group=run,colour=AvgLoss,alpha=1/AvgLoss),size=1) + 
+    geom_line(aes(x,y,group=run,colour=AvgLoss,alpha=1/AvgLoss),size=0.6) + 
+    geom_line(data=df.Giu[df.Giu$id==type,],aes(x,y),size=1.5,color="#FFFF00",linetype="dashed") + 
     geom_line(data=df.ref[df.ref$id==type,],aes(x,y),size=1.5) + 
     geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.8,color="black") + 
-    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.5,color="#ff5eff") + 
-    scale_colour_gradientn(name="Average\nLoss", colours= topo.colors(20), values=c(qn01)) +
+    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.5,color="#FF0033") + 
+    scale_colour_gradientn(name="Average\nLoss", colours= gray.colors(20), values=c(qn01)) +
     scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right 
     scale_y_continuous(limits=c(0,maxy)) +
     scale_alpha_continuous(guide=FALSE) +   
     xlab(xlab) +
-    ylab("") +
-    thm2
-  filename <- paste("Dist_",type,".png",sep="")
-  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-  print(plt)
-  dev.off()
+    ylab("") +    
+    thm2 +
+    theme(axis.ticks.y = element_blank(),
+          axis.text.y  = element_blank())
+  #if (fig.format=="PNG") {
+    filename <- paste("png/Dist_",type,".png",sep="")
+    png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+    print(plt)
+    dev.off()
+  #} else {
+    filename <- paste("ps/Dist_",type,".ps",sep="")
+    cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+    print(plt)
+    dev.off()
+  #}
+
+  
+#   # DEBUG giulia distr
+#   r <- SetRangesGiuliaCheck(type)  
+#   plt2 <- ggplot(data=df[df$id==type,]) +     
+#     geom_line(data=df.Giu[df.Giu$id==type,],aes(x,y),size=1.5,color="#FF0099",linetype="dashed") + 
+#     geom_line(data=df.ref[df.ref$id==type,],aes(x,y),size=1.5) +         
+#     scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right     
+#     scale_alpha_continuous(guide=FALSE) +   
+#     xlab(xlab) +
+#     ylab("") +    
+#     thm2 +
+#     theme(axis.ticks.y = element_blank(),
+#           axis.text.y  = element_blank())
+#    filename <- paste("png/Dist_GiuliaCheck",type,".png",sep="")
+#    png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+#    print(plt2)
+#    dev.off()
   
   return(arrangeGrob(plt))
 }
   
 
-##########
+## END FUNCTIONS ##
+
 
 # Correlation plots for SI
 for (TestIndex in seq(2,13)) {
-  REP <- ReadData(TestIndex)
-  Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$los)
-  colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
-  plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
-  filename <- sprintf("Correlations_%02d_SI.png",TestIndex)
-  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-  print(plt)
-  dev.off() 
+ REP <- ReadData(TestIndex)
+ Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
+ colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
+ plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
+ #if (fig.format=="PNG") {
+   filename <- sprintf("png/Correlations_%02d_SI.png",TestIndex)
+   png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+   print(plt)
+   dev.off()
+ #} else {
+   filename <- sprintf("ps/Correlations_%02d_SI.ps",TestIndex)
+   cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+   print(plt)
+   dev.off()
+ #}
 }
 
-############################################################################################
+#############################################################################################
 # Correlation plot Main text (Test = 9)
 TestIndex <- 9
 REP <- ReadData(TestIndex)
-Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$los)
+Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
 colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
 plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
-filename <- sprintf("Correlations_%02d_Main.png",TestIndex)
-png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-print(plt)
-dev.off() 
+#if (fig.format=="PNG") {
+  filename <- sprintf("png/Correlations_%02d_Main.png",TestIndex)
+  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+  print(plt)
+  dev.off()
+#} else  {
+  filename <- sprintf("ps/Correlations_%02d_Main.ps",TestIndex)
+  cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+  print(plt)
+  dev.off()
+#}
 
 # Check ergodicity of MCMC
+TestIndex <- 3
+REP <- ReadData(TestIndex)
 lambda<-0.08
 beta<-1/lambda
-fith<-hist(REP$los,25)
+fith<-hist(REP$AvgLoss,25)
 dx <- diff(fith$mids)[1]
 theoP <- exp(-beta * fith$mids)/dx
 dfloss <- data.frame(x.simP=fith$mids, y.simP=fith$density, y.theoP=theoP)
 plt <- ggplot(dfloss) + geom_line(aes(x=x.simP,y=y.simP),size=2) + 
   geom_line(aes(x=x.simP,y=y.theoP),size=2,col="red") + 
   xlab("Loss") + ylab("P(Loss)")  + thm2
-filename <- sprintf("ErgodicityTest_%02d.png",TestIndex)
-png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-print(plt)
-dev.off() 
+#if (fig.format=="PNG") {
+  filename <- sprintf("png/ErgodicityTest_%02d.png",TestIndex)
+  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+  print(plt)
+  dev.off()
+#} else {
+  filename <- sprintf("ps/ErgodicityTest_%02d.ps",TestIndex)
+  cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+  print(plt)
+  dev.off()
+#}
 
 
 ############################################################################################
@@ -287,7 +389,7 @@ if (reload) {
    for (idx in ridx) {
      tmp <- LoadDist(idx,TestIndex)
      tmp$run <- rep(idx,nrow(tmp)) # Add run information
-     tmp$AvgLoss <- rep(REP[REP$Run==idx,]$los,nrow(tmp)) # Add average loss
+     tmp$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss
      if (GlobalIdx == 0) {    
        df <- tmp
      } else {
@@ -298,16 +400,20 @@ if (reload) {
    colnames(df) <- c("x","y","id","run","AvgLoss")
   
   # Best Iteration distributions
-  bestr <- REP[which.min(REP$los),]$Run
+  bestr <- REP[which.min(REP$AvgLoss),]$Run
   df.best <- LoadDist(bestr,TestIndex)
   
   
   # Ref distributions for 310
   df.ref <- LoadRefDist()  
   
+  # Distributions for 310 Giulia
+  df.Giu <- LoadDistGiulia()  
+  
   # Store dfs  
   save(file="dfTest13.Rdata",df)
   save(file="df.ref.Rdata",df.ref)
+  save(file="df.Giu.Rdata",df.Giu)
   save(file="dfTest13.best.Rdata",df.best)
   
 } else {
@@ -315,62 +421,22 @@ if (reload) {
   # Load df
   load(file="dfTest13.Rdata")  
   load(file="df.ref.Rdata")
+  load(file="df.Giu.Rdata")
   load(file="dfTest13.best.Rdata")
 }
 
 
 
 # Plot distributions
-p13 <- PlotDists(df,df.best,df.ref,"r13")
-p14 <- PlotDists(df,df.best,df.ref,"r14")
-p15 <- PlotDists(df,df.best,df.ref,"r15")
-ptheta <- PlotDists(df,df.best,df.ref,"theta")
-pphi <- PlotDists(df,df.best,df.ref,"phi")
+p13 <- PlotDists(df,df.best,df.ref,df.Giu,"r13")
+p14 <- PlotDists(df,df.best,df.ref,df.Giu,"r14")
+p15 <- PlotDists(df,df.best,df.ref,df.Giu,"r15")
+ptheta <- PlotDists(df,df.best,df.ref,df.Giu,"theta")
+pphi <- PlotDists(df,df.best,df.ref,df.Giu,"phi")
 
-###################################################
-# Feature selection 
-library("caret")
 
-# Load report
-TestIndex <- 13
-REP <- ReadData(TestIndex)
 
-# Sample 
-ridx <- sample(max(REP$Run),1000)
-Col.Names <- colnames(REP)
-Col.index <- grep("Param",Col.Names) 
-XX <- data.frame(REP[ridx,Col.index])
-YY <- REP$los[ridx]
 
-# Remove constant variance columns
-XX.clean <- XX[,apply(XX,2,var) != 0]
-Constant.Variance.Names <- colnames(XX)[apply(XX,2,var)==0]
-cat("These parameters have constant variance : ", Constant.Variance.Names, "\n")
-df <- data.frame(XX.clean,YY)
-
-# Set resampling method 
-control <- trainControl(method="repeatedCV", number=10, repeats = 3, returnResamp = "all")
-
-# Fitting support vector machine with radial basis kernel.
-fit.svmRadial <- train(YY ~., 
-                       data=df, 
-                       method="svmRadial", 
-                       tuneLength=5,  
-                       preProcess="scale", 
-                       trControl=control, 
-                       importance=TRUE)
-varImp(fit.svmRadial)
-
-# Profiling
-# svmrfe<-rfe(XX.clean, YY, sizes=c(1,2), rfeControl = rfeControl(functions = caretFuncs,method="repeatedCV", number=10, repeats = 3, returnResamp = "all" ), method = "svmRadial")
-# xyplot(svmrfe)
-
-# Check predition quality 
-YY.pred <- predict(fit.svmRadial)
-cor(YY,YY.pred)
-lmfit.sum <- summary(lm(YY.pred ~ YY))
-Adj.R2 <- s$adj.r.squared 
-Fstat <- s$fstatistic
 
 
 
