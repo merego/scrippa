@@ -31,10 +31,10 @@ pnorm <- function(p,type) {
     x<-p.ks$x
     y<-p.ks$y  
   } else {
-    x<-p[,1] 
-    x <- ConvertUnit(x,type)
+    x<-p[,1]     
     y<-p[,2]
   }
+  x <- ConvertUnit(x,type)
   dx <- diff(x)[1]
   y[is.na(y)]<-0
   Z <- sum(y)*dx
@@ -76,9 +76,19 @@ r0 <- theta2r(theta0r) # A
 
 # Read reportXX.dat 
 # XX == TestIndex
+AsParaGs.version <- "old"
 ReadData <- function(TestIndex) {
  filename <- sprintf("report%02d.dat",TestIndex)
  REP <- read.table(filename,header=TRUE)
+ # Nella vecchia versione di AsParaGs (before 30/06/2015)
+ # la loss dell'iterazione t era riferita ai parametri contenuti dell'XML dell'iterazione t-1
+ # anche nel report.dat quindi sono sfasati e qui li correggo.
+ if (AsParaGs.version=="old") {
+   Loss <- REP$AvgLoss[-1]
+   Last <- nrow(REP) 
+   REP <- REP[-Last,]
+   REP$AvgLoss <- Loss
+ }   
  return(REP)
 }
 
@@ -350,7 +360,7 @@ plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
 #}
 
 # Check ergodicity of MCMC
-TestIndex <- 3
+TestIndex <- 13
 REP <- ReadData(TestIndex)
 lambda<-0.08
 beta<-1/lambda
