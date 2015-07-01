@@ -2,6 +2,7 @@ library("ggplot2")
 library("scales")
 library("gridExtra")
 library("KernSmooth")
+library("MASS")
 
 
 # General theme for PNG (ok for 600 dpi resolution 6.5x3.25in)
@@ -76,7 +77,7 @@ r0 <- theta2r(theta0r) # A
 
 # Read reportXX.dat 
 # XX == TestIndex
-AsParaGs.version <- "old"
+AsParaGs.version <- "new"
 ReadData <- function(TestIndex) {
  filename <- sprintf("report%02d.dat",TestIndex)
  REP <- read.table(filename,header=TRUE)
@@ -93,16 +94,27 @@ ReadData <- function(TestIndex) {
 }
 
 # Main correlation plot 
-PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
+PlotCorrelations <- function(REP,TestIndex,fitting=FALSE) {
+  
+  if (TestIndex >= 10) {
+    k1i <- which(colnames(REP)=="Param1") # k13
+    k2i <- which(colnames(REP)=="Param1.2") # ktheta
+  } else {
+    k1i <- which(colnames(REP)=="Param1") # k13
+    k2i <- which(colnames(REP)=="Param1.1") # ktheta
+  }
+   
+  REP.sub <- cbind(REP[,c(k1i,k2i)],REP$AvgLoss)
+  colnames(REP.sub) <- c("k1","k2","AvgLoss")
   
   # Fit intercept of theoretical line
-  best.loss <- sort(Surface$AvgLoss,index.return=TRUE)
-  dfmin <- Surface[best.loss$ix[1:10],] # Top 10
+  best.loss <- sort(REP.sub$AvgLoss,index.return=TRUE)
+  dfmin <- REP.sub[best.loss$ix[1:10],] # Top 10
   if (fitting) {
-    y <- dfmin[,3]
     x <- dfmin[,1]
+    y <- dfmin[,2]
     initslope <- (alpha(theta0r))^2 # Theoretical slope
-    fit <- nls(y ~ a + b * x, algorithm = "port", start=c(a=120, b=-initslope), upper=c(a=150, b=-(initslope-0.1)), lower=c(a=20, b=-(initslope+0.1)) ) # Fit with 
+    fit <- nls(y ~ a + b * x, algorithm = "port", start=c(a=120, b=-initslope), upper=c(a=150, b=-(initslope-0.1)), lower=c(a=1, b=-(initslope+0.1)) ) # Fit with 
     keff <- summary(fit)$parameters[1]
     slope <- initslope
   } else {
@@ -111,13 +123,13 @@ PlotCorrelations <- function(Surface,TestIndex,fitting=FALSE) {
   }
   
   # Get some quantiles to create non-linear color scale
-  qn = quantile(Surface$AvgLoss,c(0.01,0.2,0.5,0.7,0.99))
+  qn = quantile(REP.sub$AvgLoss,c(0.01,0.2,0.5,0.7,0.99))
   qn01<-rescale(qn)
   
   # plot
-  plt <- ggplot(Surface) + geom_point(aes(kr,ktheta,colour=AvgLoss),size=0.5) +
+  plt <- ggplot(REP.sub) + geom_point(aes(k1,k2,colour=AvgLoss),size=0.5) +
     geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") +
-    geom_point(data=dfmin,aes(kr,ktheta),colour="black",size=1) +
+    geom_point(data=dfmin,aes(k1,k2),colour="black",size=1) +
     scale_colour_gradientn(name="Average\nLoss", colours= topo.colors(20), values=c(qn01)) +
     scale_x_continuous(expand=c(0.01,0.01)) + # remove white spaces left right
     scale_y_continuous(expand=c(0.01,0.01)) + # remove white spaces bottom top
@@ -324,9 +336,10 @@ PlotDists <- function(df,df.best,df.ref,df.Giu,type) {
 # Correlation plots for SI
 for (TestIndex in seq(2,13)) {
  REP <- ReadData(TestIndex)
- Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
- colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
- plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
+#  if (TestIndex)
+#  Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
+#  colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
+ plt <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
  #if (fig.format=="PNG") {
    filename <- sprintf("png/Correlations_%02d_SI.png",TestIndex)
    png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
@@ -344,9 +357,9 @@ for (TestIndex in seq(2,13)) {
 # Correlation plot Main text (Test = 9)
 TestIndex <- 9
 REP <- ReadData(TestIndex)
-Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
-colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
-plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
+# Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
+# colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
+plt <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
 #if (fig.format=="PNG") {
   filename <- sprintf("png/Correlations_%02d_Main.png",TestIndex)
   png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
@@ -360,15 +373,17 @@ plt <- PlotCorrelations(Surface,TestIndex,fitting=TRUE)
 #}
 
 # Check ergodicity of MCMC
-TestIndex <- 13
+TestIndex <- 03
 REP <- ReadData(TestIndex)
-lambda<-0.08
+lambda<-0.001
 beta<-1/lambda
-fith<-hist(REP$AvgLoss,25)
-dx <- diff(fith$mids)[1]
-theoP <- exp(-beta * fith$mids)/dx
-dfloss <- data.frame(x.simP=fith$mids, y.simP=fith$density, y.theoP=theoP)
-plt <- ggplot(dfloss) + geom_line(aes(x=x.simP,y=y.simP),size=2) + 
+rate<-beta
+AvgLoss.h <- hist(REP$AvgLoss,25)
+AvgLoss.fit.gamma <- fitdistr(REP$AvgLoss,"gamma")
+shape <- AvgLoss.fit.gamma$estimate[1]
+rate <- AvgLoss.fit.gamma$estimate[2]
+dfloss <- data.frame(x.simP=AvgLoss.h$mids, y.simP=AvgLoss.h$density, y.theoP=dgamma(AvgLoss.h$mids,shape=shape,rate=rate))
+plt <- ggplot(dfloss) + geom_point(aes(x=x.simP,y=y.simP),size=3) + 
   geom_line(aes(x=x.simP,y=y.theoP),size=2,col="red") + 
   xlab("Loss") + ylab("P(Loss)")  + thm2
 #if (fig.format=="PNG") {
