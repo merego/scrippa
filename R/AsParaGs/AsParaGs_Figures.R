@@ -5,7 +5,8 @@ library("KernSmooth")
 library("MASS")
 
 
-
+# Aggiornare la tabella se i test sono cambiati.
+attributes <- data.frame(read.table("attributes",header=TRUE))
 
 # General theme for PNG (ok for 600 dpi resolution 6.5x3.25in)
 thm2<- theme(panel.background = element_rect(fill = 'white'),
@@ -25,6 +26,26 @@ thm2<- theme(panel.background = element_rect(fill = 'white'),
 c5 <- c("#d7191c","#fdae61","#ffffbf","#abdda4","#2b83ba")
 c10 <- c("#a6cee3",  "#1f78b4",   "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a")
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# Palette many classes
+c25 <- c("dodgerblue2","#E31A1C", # red
+         "green4",
+         "#6A3D9A", # purple
+         "#FF7F00", # orange
+         "black","gold1",
+         "skyblue2","#FB9A99", # lt pink
+         "palegreen2",
+         "#CAB2D6", # lt purple
+         "#FDBF6F", # lt orange
+         "gray70", "khaki2",
+         "maroon","orchid1","deeppink1","blue1","steelblue4",
+         "darkturquoise","green1","yellow4","yellow3",
+         "darkorange4","brown")
+
+# Append to list
+lappend <- function (lst, ...){
+  lst <- c(lst, list(...))
+  return(lst)
+}
 
 # Normalize distribution
 pnorm <- function(p,type) {
@@ -92,47 +113,72 @@ ReadData <- function(TestIndex) {
    REP <- REP[-Last,]
    REP$AvgLoss <- Loss
  }   
+ # If IBI add WRMS
+ if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) { 
+   df <- LoadWRMS(TestIndex)
+   df.mat <- matrix(df[,1],50,2)
+   WRMS.avg <- rowMeans(df.mat)
+   REP$WRMS <- WRMS.avg
+ }
+ 
  return(REP)
 }
 
-# Main correlation plot 
-PlotCorrelations <- function(REP,TestIndex,fitting=FALSE) {
+kkLoss <- function(REP,TestIndex) {
   
-  TestsWithMorse <- c(7,8,12,13,14) # List tests which contain r13 morse 
-  TestsWithr14 <- c(10,11,12,13,14) # List tests which contain term r14 (whatever functional term)
-      
   # Tests >= 10 have r13,14,theta,phi (<10 only r13,theta)
-  if (TestIndex %in% TestsWithr14) {
+  if (TestIndex %in% attributes[attributes$r14==TRUE,1]) {
     k1i <- which(colnames(REP)=="Param1") # k13
     k2i <- which(colnames(REP)=="Param1.2") # ktheta
   } else {
     k1i <- which(colnames(REP)=="Param1") # k13
     k2i <- which(colnames(REP)=="Param1.1") # ktheta
-  }
-   
+  }  
   REP.sub <- cbind(REP[,c(k1i,k2i)],REP$AvgLoss)
   colnames(REP.sub) <- c("k1","k2","AvgLoss")
+  return(REP.sub)
+}
+
+
+# Main correlation plot 
+PlotCorrelations <- function(REP,TestIndex,fitting=FALSE) {
+  
+  REP.sub <- kkLoss(REP,TestIndex)    
   
   # Fit intercept of theoretical line
   best.loss <- sort(REP.sub$AvgLoss,index.return=TRUE)
-  dfmin <- REP.sub[best.loss$ix[1:10],] # Top 10
+  dfmin <-  REP.sub[best.loss$ix[1:20],] # Top 10
   if (fitting) {
     x <- dfmin[,1]
     y <- dfmin[,2]
     initslope <- (alpha(theta0r))^2 # Theoretical slope
     fit <- nls(y ~ a + b * x, algorithm = "port", start=c(a=120, b=-initslope), upper=c(a=150, b=-(initslope-0.1)), lower=c(a=1, b=-(initslope+0.1)) ) # Fit with 
     keff <- summary(fit)$parameters[1]
-    slope <- initslope
+    slope <- initslope    
   } else {
     keff <- 115
     slope <- initslope
   }
   
+  # Fit intercept of theoretical line (free-fit)
+  best.loss <- sort(REP.sub$AvgLoss,index.return=TRUE)
+  dfmin <-  REP.sub[best.loss$ix[1:20],] # Top 10
+  if (fitting) {    
+    x <- dfmin[,1]
+    y <- dfmin[,2]    
+    # Convert to equivalent harmonic k
+    if (TestIndex %in% attributes$Morse) { 
+      x <- 2 * x * 1.3^2
+    }
+    fit.free <- lm(y ~ x)       
+  }
+  
+
   # Get some quantiles to create non-linear color scale
   qn = quantile(REP.sub$AvgLoss,c(0.01,0.2,0.5,0.7,0.99))
   qn01<-rescale(qn)
   
-  # plot
+  # plot Correlations
   plt <- ggplot(REP.sub) + geom_point(aes(k1,k2,colour=AvgLoss),size=0.5) +
     geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") +
     geom_point(data=dfmin,aes(k1,k2),colour="black",size=1) +
@@ -143,13 +189,35 @@ PlotCorrelations <- function(REP,TestIndex,fitting=FALSE) {
   
   # Add proper xlab, ylab
   ylabel <- expression ( paste ( k[theta], " [ kcal ", mol^"-1" , rad^"-1", "]" , sep = " ")   )
-  if (TestIndex %in% TestsWithMorse) {    
+  if (TestIndex %in% attributes$Morse) {    
     xlabel <- expression ( paste ( epsilon[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )
   } else {
     xlabel <- expression ( paste ( k[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )    
   }
-  plt <- plt + xlab(xlabel) + ylab(ylabel)    
-  return(plt)
+  plt <- plt + xlab(xlabel) + ylab(ylabel)   
+  
+  # plot Correlation Lines
+  plt1 <- ggplot(REP.sub) + geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") +
+    geom_point(data=dfmin,aes(k1,k2),colour="black",size=1) +    
+    scale_x_continuous(expand=c(0.01,0.01)) + # remove white spaces left right
+    scale_y_continuous(expand=c(0.01,0.01)) + # remove white spaces bottom top
+    thm2
+  
+  # Add proper xlab, ylab
+  ylabel <- expression ( paste ( k[theta], " [ kcal ", mol^"-1" , rad^"-1", "]" , sep = " ")   )
+  if (TestIndex %in% attributes[attributes$Morse==TRUE,1]) {    
+    xlabel <- expression ( paste ( epsilon[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )
+  } else {
+    xlabel <- expression ( paste ( k[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )    
+  }
+  plt1 <- plt1 + xlab(xlabel) + ylab(ylabel)   
+  
+    
+  return(list(Corr=plt,CorrLinesFit=fit.free,R2=summary(fit.free)$adj.r.squared))
+}
+
+PlotCorrelationLines <- function(fits) {
+  rse<-sqrt(deviance(fit))/(sqrt(8))  
 }
 
 # Load dists 
@@ -157,94 +225,104 @@ LoadDist <- function(idx,TestIndex) {
   # Position on lpgm-pc is different than t800
   hostname<-Sys.info()["nodename"]
   
-  if (hostname=="lpgm-pc") {
-    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)
-  } else if (hostname=="t800") {
+  if (hostname=="t800") {
     dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
-  } else {
-    cat("Hostname not recognized.")
+  } else  {
+    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)  
   }
   
+  df <- data.frame()
   filename <- paste(dir,idx,'/Param1.dat',sep="")
-  p1 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r13",ptype="Dist")
   filename <- paste(dir,idx,'/Param2.dat',sep="")
-  p2 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r14",ptype="Dist")  
   filename <- paste(dir,idx,'/Param3.dat',sep="")
-  p3 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="theta",ptype="Dist")  
   filename <- paste(dir,idx,'/Param4.dat',sep="")
-  p4 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="phi",ptype="Dist")      
   filename <- paste(dir,idx,'/Param15.dat',sep="")
-  p15 <- as.data.frame(read.table(filename))  
-  p1.norm <- pnorm(p1,"r13")
-  p2.norm <- pnorm(p2,"r14")
-  p3.norm <- pnorm(p3,"theta")
-  p4.norm <- pnorm(p4,"phi")
-  p15.norm <- pnorm(p15,"r15")
-  df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
-  df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
+  df <- LoadCheck(filename,df,type="phi",ptype="Dist")      
+  
+  
+#   filename <- paste(dir,idx,'/Param1.dat',sep="")
+#   p1 <- as.data.frame(read.table(filename))
+#   filename <- paste(dir,idx,'/Param2.dat',sep="")
+#   p2 <- as.data.frame(read.table(filename))
+#   filename <- paste(dir,idx,'/Param3.dat',sep="")
+#   p3 <- as.data.frame(read.table(filename))
+#   filename <- paste(dir,idx,'/Param4.dat',sep="")
+#   p4 <- as.data.frame(read.table(filename))
+#   filename <- paste(dir,idx,'/Param15.dat',sep="")
+#   p15 <- as.data.frame(read.table(filename))  
+#   p1.norm <- pnorm(p1,"r13")
+#   p2.norm <- pnorm(p2,"r14")
+#   p3.norm <- pnorm(p3,"theta")
+#   p4.norm <- pnorm(p4,"phi")
+#   p15.norm <- pnorm(p15,"r15")
+#   df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
+#   df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
   colnames(df) <- c("x","y","id")
   return(df)
 }
 
+# Check if file exists load and append (column) to dataframe
+LoadCheck <- function(filename,df,type="r13",ptype="PMF") {
+  
+  if (file.exists(filename)) {
+    p <- as.data.frame(read.table(filename))
+    if (ptype=="PMF") {
+      p[,1] <- ConvertUnit(p[,1],type)
+    } else if (ptype=="Dist") {
+      p <- pnorm(p,type)
+    } else {
+      p <- p
+    }
+    
+    tmp <- data.frame(p,rep(type,nrow(p)))
+
+    if (length(df)==0) {
+      df <- tmp
+    }  else  {
+      df <- data.frame(rbind(df,tmp))
+    }    
+  }  
+  return(df)
+}
 # Load Fitted PMF
-LoadFittedPMF <- function(idx,TestIndex) {
+LoadPMF <- function(idx,TestIndex) {
   # Position on lpgm-pc is different than t800
   hostname<-Sys.info()["nodename"]
   
-  if (hostname=="lpgm-pc") {
-    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)
-  } else if (hostname=="t800") {
+  
+  if (hostname=="t800") {
     dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
   } else {
-    cat("Hostname not recognized.")
+    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)  
   }
   
+  df <- data.frame()
   filename <- paste(dir,idx,'/Param1.dat.fitted.PMF.dat',sep="")
-  p1 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r13",ptype="PMF")
   filename <- paste(dir,idx,'/Param2.dat.fitted.PMF.dat',sep="")
-  p2 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r14",ptype="PMF")  
   filename <- paste(dir,idx,'/Param3.dat.fitted.PMF.dat',sep="")
-#   p3 <- as.data.frame(read.table(filename))
-#   p3[,1] <- ConvertUnit(p3[,1],"theta")
-#   filename <- paste(dir,idx,'/Param4.dat.fitted.PMF.dat',sep="")
-#   p4 <- as.data.frame(read.table(filename))  
-#   p4[,1] <- ConvertUnit(p4[,1],"phi")
-#  df <- data.frame(rbind(p1,p2,p3,p4))
-df <- data.frame(rbind(p1,p2))
-  #df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)))
-df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)))
-  colnames(df) <- c("x","y","id")
-  return(df)
-}
-
-# Load to be fitted PMF
-LoadToBeFittedPMF <- function(idx,TestIndex) {
-  # Position on lpgm-pc is different than t800
-  hostname<-Sys.info()["nodename"]
+  df <- LoadCheck(filename,df,type="theta",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param4.dat.fitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="phi",ptype="PMF")      
+  df.fitted <- df
   
-  if (hostname=="lpgm-pc") {
-    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)
-  } else if (hostname=="t800") {
-    dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
-  } else {
-    cat("Hostname not recognized.")
-  }
-  
+  df <- data.frame()
   filename <- paste(dir,idx,'/Param1.dat.tobefitted.PMF.dat',sep="")
-  p1 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r13",ptype="PMF")
   filename <- paste(dir,idx,'/Param2.dat.tobefitted.PMF.dat',sep="")
-  p2 <- as.data.frame(read.table(filename))
-#   filename <- paste(dir,idx,'/Param3.dat.tobefitted.PMF.dat',sep="")
-#   p3 <- as.data.frame(read.table(filename))
-#   p3[,1] <- ConvertUnit(p3[,1],"theta")
-#   filename <- paste(dir,idx,'/Param4.dat.tobefitted.PMF.dat',sep="")
-#   p4 <- as.data.frame(read.table(filename))  
-#   p4[,1] <- ConvertUnit(p4[,1],"phi")
- # df <- data.frame(rbind(p1[,c(1,5)],p2[,c(1,5)],p3[,c(1,5)],p4[,c(1,5)]))
-df <- data.frame(rbind(p1[,c(1,5)],p2[,c(1,5)]))
-#  df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)),rep("theta",nrow(p3)),rep("phi",nrow(p4)))
-df$id <- c(rep("r13",nrow(p1)),rep("r14",nrow(p2)))
-  colnames(df) <- c("x","y","id")
+  df <- LoadCheck(filename,df,type="r14",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param3.dat.tobefitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="theta",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param4.dat.tobefitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="phi",ptype="PMF") 
+  df.tobefitted <- df
+  
+  df <- list(df.fitted=df.fitted,df.tobefitted=df.tobefitted)
   return(df)
 }
 
@@ -303,6 +381,32 @@ LoadDistGiulia <- function() {
   return(df)
 }
 
+# Load reference dists
+LoadWRMS <- function(TestIndex) {
+  
+  # Position on lpgm-pc is different than t800
+  hostname<-Sys.info()["nodename"]
+  
+  
+  if (hostname=="t800") {
+    dir <- sprintf("../test%02d",TestIndex)
+  } else {
+    dir <- sprintf("../Data/test%02d",TestIndex)  
+  }
+  
+  df <- data.frame()
+  filename <- paste(dir,'/Param1.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="r13",ptype="wrms")
+  filename <- paste(dir,'/Param2.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="r14",ptype="wrms")  
+  filename <- paste(dir,'/Param3.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="theta",ptype="wrms")  
+  filename <- paste(dir,'/Param4.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="phi",ptype="wrms")
+  
+  colnames(df) <- c("wrms","id")
+  return(df)
+}
 
 # Set specific plot ranges for each term
 SetRanges <- function(type) {
@@ -311,6 +415,16 @@ SetRanges <- function(type) {
          r14 = c(4.5,7.0),
          r15 = c(6.0,10.0),
          theta = c(70,110),
+         phi = c(-180,180)) 
+}
+
+# Set specific plot ranges for each term
+SetRangesPMF <- function(type) {
+  switch(type,
+         r13 = c(5.0,6.0),
+         r14 = c(4.5,7.0),
+         r15 = c(6.0,10.0),
+         theta = c(80,100),
          phi = c(-180,180)) 
 }
 
@@ -411,7 +525,7 @@ PlotDists <- function(df,df.best,df.ref,df.Giu,type,TestIndex) {
 # Plot dists
 PlotPMFs <- function(df.fitted,df.tobefitted,type,TestIndex) {
   
-  r <- SetRanges(type)  
+  r <- SetRangesPMF(type)  
   xlab <- SetLabels(type)
   
   
@@ -420,32 +534,59 @@ PlotPMFs <- function(df.fitted,df.tobefitted,type,TestIndex) {
   qn01<-rescale(qn)
   
   # Get max y within restricted range
-  xx <- df.fitted[df.fitted$id==type,]
-  maxy <- max( xx[ xx[,1] < r[2] & xx[,1] > r[1], 2] )
+  xy <- df.tobefitted[df.tobefitted$id==type,]
+  maxy <- max( xy[ xy[,1] < r[2] & xy[,1] > r[1], ]$Run )
+
   
-  plt <- ggplot(data=df.fitted[df.fitted$id==type,]) + 
-    geom_line(aes(x,y,group=run,colour=AvgLoss,alpha=1/AvgLoss),size=0.6) +     
-    geom_line(data=df.tobefitted[df.tobefitted$id==type,],aes(x,y),size=1.8,color="black") + 
-    geom_line(data=df.tobefitted[df.tobefitted$id==type,],aes(x,y),size=1.8,color="#FF0033") + 
-    scale_colour_gradientn(name="Average\nLoss", colours= gray.colors(20), values=c(qn01)) +
-    scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right 
-    scale_y_continuous(limits=c(0,maxy)) +
-    scale_alpha_continuous(guide=FALSE) +   
-    xlab(xlab) +
-    ylab("") +    
-    thm2 +
-    theme(axis.ticks.y = element_blank(),
-          axis.text.y  = element_blank())
+  # Remove 0 values (can be different in different columns)
+  dRun <- df.tobefitted$Run # Current run 
+  dSum <- df.tobefitted$Sum # Sum
+  dRef <- df.tobefitted$Ref # Ref
+  dPrev <- df.tobefitted$Prev # Prev
+  dRun[dRun==0]<-NA
+  dSum[dSum==0]<-NA
+  dRef[dRef==0]<-NA
+  dPrev[dPrev==0]<-NA
+  df.Run <- data.frame(x=df.tobefitted$x,Run=dRun,id=df.tobefitted$id,run=df.tobefitted$run)
+  df.Sum <- data.frame(x=df.tobefitted$x,Sum=dSum,id=df.tobefitted$id,run=df.tobefitted$run)
+  df.Ref <- data.frame(x=df.tobefitted$x,Ref=dRef,id=df.tobefitted$id,run=df.tobefitted$run)
+  df.Prev <- data.frame(x=df.tobefitted$x,Prev=dPrev,id=df.tobefitted$id,run=df.tobefitted$run)
+  
+  plt <- list()
+  #for (i in c(1:max(df.fitted$run))) {
+  for (i in c(1:20)) {
+    df1 <- df.fitted[df.fitted$run==i,]
+    df2.Run <- df.Run[df.Run$run==i,] #df.tobefitted[df.tobefitted$run==i,]  
+    df2.Sum <- df.Sum[df.Sum$run==i,] 
+    df2.Ref <- df.Ref[df.Ref$run==i,] 
+    df2.Prev <- df.Prev[df.Prev$run==i,] 
+    # geom_line(data=df2[df2$id==type,],aes(x,Prev),size=1.0,color=c5[5],linetype=3) +     
+    plt[[i]] <- ggplot(data=na.omit(df1[df1$id==type,])) +
+      geom_line(aes(x,y),size=1.0,color="black") +
+      geom_line(data=na.omit(df2.Run[df2.Run$id==type,]),aes(x,Run),size=1.0,color=c5[1]) +
+      geom_line(data=na.omit(df2.Sum[df2.Sum$id==type,]),aes(x,Sum),size=1.0,color="orange") +
+      geom_line(data=na.omit(df2.Ref[df2.Ref$id==type,]),aes(x,Ref),size=0.5,color=c5[4],linetype=2) +
+      geom_line(data=na.omit(df2.Prev[df2.Prev$id==type,]),aes(x,Prev),size=0.5,color=c5[5],linetype=3) +
+      scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right
+      scale_y_continuous(limits=c(0,maxy)) +
+      xlab(xlab) +
+      ylab("") +
+      thm2 +
+      theme(axis.ticks.y = element_blank(),
+            axis.text.y  = element_blank(),
+            plot.margin = unit(c(0,0,0,0), "cm")) #+ facet_grid(run~.)
+  }
   #if (fig.format=="PNG") {
   filename <- sprintf("png/PMF_Test%02d_%s.png",TestIndex,type)
-  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-  print(plt)
+  png(file = filename, width = 6.5, height=6.5, units = 'in', type = "cairo", res = 600)
+  #print(plt)
+  do.call("grid.arrange", c(plt, ncol=5))
   dev.off()
   #} else {
-  filename <- sprintf("ps/PMF_Test%02d_%s.ps",TestIndex,type)
-  cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
-  print(plt)
-  dev.off()
+#   filename <- sprintf("ps/PMF_Test%02d_%s.ps",TestIndex,type)
+#   cairo_ps(file = filename, width = 6.5, height=6.5, pointsize = 12)
+#   print(plt)
+#   dev.off()
   #}
   
   
@@ -466,7 +607,7 @@ PlotPMFs <- function(df.fitted,df.tobefitted,type,TestIndex) {
   #    print(plt2)
   #    dev.off()
   
-  return(arrangeGrob(plt))
+  #return(arrangeGrob(plt))
 }
 
 
@@ -474,15 +615,16 @@ PlotPMFs <- function(df.fitted,df.tobefitted,type,TestIndex) {
 LoadPMF.wrap <- function(REP,TestIndex,reload=FALSE) {  
   REP <- ReadData(TestIndex)
   if (reload) {      
-    ridx <- c(0:(nrow(REP)-2))
+    ridx <- c(1:(nrow(REP)-1))
     GlobalIdx <- 0
     for (idx in ridx) {
-      tmp <- LoadFittedPMF(idx,TestIndex)
+      PMFs <- LoadPMF(idx,TestIndex)
+      tmp <- PMFs[[1]] # Fitted      
+      tmp1 <- PMFs[[2]] # ToBeFitted
       tmp$run <- rep(idx,nrow(tmp)) # Add run information
-      tmp$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss
-      tmp1 <- LoadToBeFittedPMF(idx,TestIndex)
-      tmp1$run <- rep(idx,nrow(tmp)) # Add run information
-      tmp1$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss
+      tmp$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss      
+      tmp1$run <- rep(idx,nrow(tmp1)) # Add run information
+      tmp1$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp1)) # Add average loss
       if (GlobalIdx == 0) {    
         df <- tmp
         df1 <- tmp1
@@ -493,30 +635,10 @@ LoadPMF.wrap <- function(REP,TestIndex,reload=FALSE) {
       GlobalIdx <- GlobalIdx + 1
     }
     colnames(df) <- c("x","y","id","run","AvgLoss")
-    colnames(df1) <- c("x","y","id","run","AvgLoss")
+    colnames(df1) <- c("x","Run","Prev","Diff","Sum","Ref","id","run","AvgLoss")
     df.fitted <- df
     df.tobefitted <- df1
-    
-#     # Best Iteration distributions
-#     bestr <- REP[which.min(REP$AvgLoss),]$Run
-#     df.best <- LoadFittedPMF(bestr,TestIndex)
-#     
-#     
-#     # Ref distributions for 310
-#     df.ref <- LoadRefDist()  
-#     
-#     # Distributions for 310 Giulia
-#     df.Giu <- LoadDistGiulia()  
-#     
-#     # Store dfs  
-#     
-#     save(file="df.ref.Rdata",df.ref)
-#     save(file="df.Giu.Rdata",df.Giu)
-#     filename <- sprintf("dfTest%02d.best.Rdata",TestIndex)
-#     save(file=filename,df.best)
-#     filename <- sprintf("dfTest%02d.Rdata",TestIndex)
-#     save(file=filename,df.best)  
-    
+  
   } else {
     
 #     # Load df  
@@ -584,34 +706,75 @@ LoadDists.wrap <- function(REP,TestIndex,reload=FALSE) {
   return (Dists)
 }
 
+PlotLoss <- function(REP,TestIndex) {  
+  plt<- ggplot(REP) + 
+    geom_line(aes(Run,AvgLoss),size=1.0) +
+    xlab("Iteration") +
+    ylab("Average Loss") +    
+    thm2
+  filename <- sprintf("png/Loss_Test%02d.png",TestIndex)
+  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+  print(plt)
+  dev.off()
+  #} else {
+  filename <- sprintf("ps/Loss_Test%02d.ps",TestIndex)
+  cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+  print(plt)
+  dev.off()
+  
+}
+
 ## END FUNCTIONS ##
 
 
-# # Correlation plots for SI
-# for (TestIndex in seq(2,13)) {
-#  REP <- ReadData(TestIndex)
-# #  if (TestIndex)
-# #  Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
-# #  colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
-#  plt <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
-#  #if (fig.format=="PNG") {
-#    filename <- sprintf("png/Correlations_%02d_SI.png",TestIndex)
-#    png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-#    print(plt)
-#    dev.off()
-#  #} else {
-#    filename <- sprintf("ps/Correlations_%02d_SI.ps",TestIndex)
-#    cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
-#    print(plt)
-#    dev.off()
-#  #}
+# # Correlation plots for SI (loop from Test 2 to 14)
+# fits <- list() # Fitted correlation linear models
+# R2s <- list() # Fitted correlation linear models R2
+# for (TestIndex in seq(2,14)) {
+#   if (TestIndex %in% attributes[attributes$SIM=="MC",1]) { 
+#     REP <- ReadData(TestIndex)
+#     plots <- PlotCorrelations(REP,TestIndex,fitting=TRUE)    
+#     plt <- plots$Corr    
+#     fits <- lappend(fits,plots$CorrLinesFit)
+#     R2s <- lappend(R2s,plots$R2)
+#     filename <- sprintf("png/Correlations_%02d_SI.png",TestIndex)
+#     png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+#     print(plt)
+#     dev.off()
+#     filename <- sprintf("ps/Correlations_%02d_SI.ps",TestIndex)
+#     cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+#     print(plt)
+#     dev.off()    
+#   }
 # }
 # 
-# #############################################################################################
-# # Correlation plot Main text (Test = 9)
+# i <- 1
+# for (TestIndex in seq(2,14)) {
+#   fit <- fits[[i]]
+#   coef <- coefficients(fit)
+#   x <- data.frame(c(1:20))
+#   y <- coef[1] + coef[2] * x    
+#   
+#   if (i==1) {
+#     df <- data.frame(x=x,y=y,TestIndex=rep(TestIndex,nrow(x)))  
+#   } else {
+#     df <- rbind(df, data.frame(x=x,y=y,TestIndex=rep(TestIndex,nrow(x)))  )
+#   }  
+#   i <- i + 1
+# }
+# colnames(df) <- c("x","y","TestIndex")
+# ggplot(df) + 
+#   geom_line(aes(x,y,group=factor(TestIndex),colour=factor(TestIndex))) +
+#   scale_color_manual(values=c25) +
+#   thm2
+
+# 
+# # #############################################################################################
+# # Correlation plot Main text. Only for Test = 9
 # TestIndex <- 9
 # REP <- ReadData(TestIndex)
-# plt <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
+# plots <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
+# plt <- plots$Corr
 # filename <- sprintf("png/Correlations_%02d_Main.png",TestIndex)
 # png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
 # print(plt)
@@ -620,6 +783,7 @@ LoadDists.wrap <- function(REP,TestIndex,reload=FALSE) {
 # cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
 # print(plt)
 # dev.off()
+
 
 # # Check ergodicity of MCMC
 # TestIndex <- 14
@@ -648,34 +812,68 @@ LoadDists.wrap <- function(REP,TestIndex,reload=FALSE) {
 #}
 # 
 # 
-# ############################################################################################
-# # Distribution plot Main text (Test = 13 or Test = 14 I should chose which one)
-# # Load distributions from a sample of N runs from Test = 13/14
-# # Set reload TRUE if you want to sample another sample,
-# # however, it you need to have the raw simulations data in ../test13/ or ../test14/
-# # 
-TestIndex <- 14 # 13
-Dists <- LoadDists.wrap(REP,TestIndex,reload=FALSE)
+############################################################################################
+# Distribution plot Main text (Test = 13 or Test = 14 I should chose which one)
+# Load distributions from a sample of N runs from Test = 13/14
+# Set reload TRUE if you want to sample another sample,
+# however, it you need to have the raw simulations data in ../test13/ or ../test14/
+# 
+TestIndex <- 31
+REP <- ReadData(TestIndex)
+# Load Dists
+# Set reload true if you want to read from raw data
+# otherwise it will use data frame already stored in ana/df.XXX
+# For tests 2 to 14 raw data is only present on t800 so reload, 
+# if you are not on t800, set it to false.
+reload=TRUE
+if (TestIndex<14) {
+  reload=FALSE
+}
+Dists <- LoadDists.wrap(REP,TestIndex,reload=reload)
 df <- Dists[[1]]
 df.best <- Dists[[2]]
 df.ref <- Dists[[3]]
 df.Giu <- Dists[[4]]
-p13 <- PlotDists(df,df.best,df.ref,df.Giu,"r13",TestIndex)
-p14 <- PlotDists(df,df.best,df.ref,df.Giu,"r14",TestIndex)
-p15 <- PlotDists(df,df.best,df.ref,df.Giu,"r15",TestIndex)
-ptheta <- PlotDists(df,df.best,df.ref,df.Giu,"theta",TestIndex)
-pphi <- PlotDists(df,df.best,df.ref,df.Giu,"phi",TestIndex)
 
 
-# TestIndex <- 16
-# PMFs <- LoadPMF.wrap(REP,TestIndex,reload=TRUE)
-# df.fitted <- PMFs[[1]]
-# df.tobefitted <- PMFs[[2]]
-# PlotPMFs(df.fitted,df.tobefitted,"r13",TestIndex)
-# PlotPMFs(df.fitted,df.tobefitted,"r14",TestIndex)
-# PlotPMFs(df.fitted,df.tobefitted,"theta",TestIndex)
-# PlotPMFs(df.fitted,df.tobefitted,"phi",TestIndex)
+# Plot distributios
+if (TestIndex %in% attributes[attributes$r13==TRUE,1]) {
+  PlotDists(df,df.best,df.ref,df.Giu,"r13",TestIndex)
+} 
+if (TestIndex %in% attributes[attributes$r14==TRUE,1]) {
+  PlotDists(df,df.best,df.ref,df.Giu,"r14",TestIndex)
+}
+if (TestIndex %in% attributes[attributes$theta==TRUE,1]) {
+  PlotDists(df,df.best,df.ref,df.Giu,"theta",TestIndex)
+}
+if (TestIndex %in% attributes[attributes$phi==TRUE,1]) {
+  PlotDists(df,df.best,df.ref,df.Giu,"phi",TestIndex)
+}
 
+# These are only for IBI 
+# Plot PMFs
+if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {
+  
+  # Load PMFs
+  PMFs <- LoadPMF.wrap(REP,TestIndex,reload=TRUE)
+  df.fitted <- PMFs[[1]]
+  df.tobefitted <- PMFs[[2]]
+  
+  if (TestIndex %in% attributes[attributes$r13==TRUE,1]) {
+    PlotPMFs(df.fitted,df.tobefitted,"r13",TestIndex)  
+  }
+  if (TestIndex %in% attributes[attributes$r14==TRUE,1]) {
+    PlotPMFs(df.fitted,df.tobefitted,"r14",TestIndex)  
+  }
+  if (TestIndex %in% attributes[attributes$theta==TRUE,1]) {
+    PlotPMFs(df.fitted,df.tobefitted,"theta",TestIndex)  
+  }
+  if (TestIndex %in% attributes[attributes$phi==TRUE,1]) {
+    PlotPMFs(df.fitted,df.tobefitted,"phi",TestIndex)  
+  }
+}
 
-
+# Plot Loss
+REP <- ReadData(TestIndex)
+PlotLoss(REP,TestIndex)
 
