@@ -23,7 +23,7 @@ thm2<- theme(panel.background = element_rect(fill = 'white'),
              axis.ticks.y = element_line(size=0.8, colour="black"),
              axis.text.y  = element_text(angle=0, vjust=0.5, size=12, face="bold", colour="black"),
              axis.title.y = element_text(angle=90, vjust=0.5, size=12, face="bold", colour="black"),
-             plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+             plot.title = element_text(lineheight=3, face="bold", color="black", size=12),
              legend.title  = element_text(angle=0, vjust=0.5, size=12, face="bold", colour="black"),
              legend.text = element_text(lineheight=3, face="bold", color="black", size=12),
              strip.text = element_text(lineheight=3, face="bold", color="black", size=12)) # Text for facets header
@@ -819,7 +819,7 @@ LoadDists.wrap <- function(REP,TestIndex,reload=FALSE) {
     filename <- sprintf("dfTest%02d.best.Rdata",TestIndex)
     save(file=filename,df.best)
     filename <- sprintf("dfTest%02d.Rdata",TestIndex)
-    save(file=filename,df.best)  
+    save(file=filename,df)  
     
   } else {
     
@@ -835,20 +835,41 @@ LoadDists.wrap <- function(REP,TestIndex,reload=FALSE) {
   return (Dists)
 }
 
-PlotLoss <- function(REP,TestIndex) {  
+PlotLoss <- function(REPs,TestIndex) {  
   
-  # Test 13 use just last 5000 steps.
-  if (TestIndex == 13) {
-    N <- nrow(REP)
-    REP <- REP[c((N-5000):N),]
-  }  
+  # Test 16 MC   
+  if (TestIndex == 16) {    
+    REP <- REPs[[1]]
+    REP.17 <- REPs[[2]]
+    REP.18 <- REPs[[3]]
+    REP.19 <- REPs[[4]]
+    REP.20 <- REPs[[5]]
+    df.MCSA<-data.frame(c(REP.17$AvgLoss,REP.17$Loss,REP.17$Loss.1,REP.17$Loss.2,REP.17$Loss.3,
+                          REP.18$AvgLoss,REP.18$Loss,REP.18$Loss.1,REP.18$Loss.2,REP.18$Loss.3,
+                          REP.19$AvgLoss,REP.19$Loss,REP.19$Loss.1,REP.19$Loss.2,REP.19$Loss.3,
+                          REP.20$AvgLoss,REP.20$Loss,REP.20$Loss.1,REP.20$Loss.2,REP.20$Loss.3))
+    df.MCSA$Run<- c(rep(REP.17$Run,5),rep(REP.18$Run,5),rep(REP.19$Run,5),rep(REP.20$Run,5))
+    df.MCSA$Type <- c(rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.17$AvgLoss)),
+                      rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.18$AvgLoss)),
+                      rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.19$AvgLoss)),
+                      rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.20$AvgLoss)))
+    df.MCSA$Test <- c(rep("C1",length(REP.17$AvgLoss)*5),
+                      rep("C2",length(REP.18$AvgLoss)*5),
+                      rep("C3",length(REP.19$AvgLoss)*5),
+                      rep("C4",length(REP.20$AvgLoss)*5)) 
+    colnames(df.MCSA)<-c("AvgLoss","Run","Type","Test")   
+    df.MCSA$Type <- factor(df.MCSA$Type)
+    df.MCSA$Type <- factor(df.MCSA$Type, levels=rev(levels(df.MCSA$Type)))
+  } else {
+    REP <- REPs[[1]]
+  }
   
   # Only if IBI
    if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {       
     maxx <- which.min(REP$AvgLoss)  
-    REP1 <- REP[c(1:maxx),]    
-    maxLoss <- max(REP1$AvgLoss)
-    minLoss <- min(REP1$AvgLoss)
+    REP <- REP[c(1:maxx),]    
+    maxLoss <- max(REP$AvgLoss)
+    minLoss <- min(REP$AvgLoss)
    }
    
   REP.loss <- REP[,c(grep("Loss",colnames(REP)))]    
@@ -864,9 +885,10 @@ PlotLoss <- function(REP,TestIndex) {
   plt<- ggplot(df) + 
     geom_line(aes(Run,value,group=factor(variable),colour=factor(variable),size=factor(size))) +
     xlab("Iteration") +
-    ylab("Average Loss") +   
+    ylab("Loss") +   
     scale_color_manual("",values=c4black) +
-    scale_size_discrete(guide=FALSE,range = c(0.3, 0.7)) +    
+    scale_size_manual(guide=FALSE,values = c(0.3, 0.3, 0.3, 0.3, 0.7)) +
+    scale_x_continuous(expand=c(0.01,0.01)) +
     thm2
     
   # Only if IBI
@@ -875,19 +897,57 @@ PlotLoss <- function(REP,TestIndex) {
     REP.WRMS <- data.frame(cbind(REP$Run, REP[,grep("WRMS.avg",colnames(REP))]) ) 
     REP.WRMS <- REP.WRMS[-1,]
     REP.WRMS$WRMS.avg <- rangeAB(REP.WRMS[,2],minLoss,maxLoss)
-    #REP.WRMS$WRMS.avg.smooth <- sgolayfilt(range01(REP.WRMS[,2])/2, p=3, n=15, m=0)
-    #REP.WRMS$dWRMS.avg <- sgolayfilt(range01(REP.WRMS[,2])/2, p=3, n=21, m=1)
     colnames(REP.WRMS) <- c("Run","WRMS.avg.ori","WRMS.avg")#,"r13","theta","r13.s","theta.s")      
     plt <- plt + 
       geom_line(data=REP.WRMS,aes(Run,WRMS.avg),size=0.5,linetype=2) 
   }  
   
-  filename <- sprintf("png/Loss_Test%02d.png",TestIndex)
-  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-  print(plt)
-  dev.off()
-  filename <- sprintf("pdf/Loss_Test%02d.pdf",TestIndex)
-  ggsave(file=filename,plot=plt,device=pdf,width=6.5, height=3.25,units="in")  
+  # Only if TestIndex == 16 
+  if (TestIndex == 16) {
+    Clusters.x<-c(4591,1224,2890,3097)
+    Clusters.y<-c(0.08,0.15,0.16,0.26)
+    cls<-data.frame(cbind(Clusters.x,Clusters.y))
+    plt <- plt + 
+      geom_point(data=cls,aes(Clusters.x,Clusters.y),color="black",size=4.5) +
+      geom_point(data=cls,aes(Clusters.x,Clusters.y),color="white",size=4.0) +
+      ggtitle("MMC") + 
+      theme(plot.margin = unit(c(1.0,0.5,1.0,1.0), "lines"),
+            legend.position="none") +
+      annotate("text", x=Clusters.x[1], y = Clusters.y[1], label = "C1", size=2) +
+      annotate("text", x=Clusters.x[2], y = Clusters.y[2], label = "C2", size=2) +
+      annotate("text", x=Clusters.x[3], y = Clusters.y[3], label = "C3", size=2) +
+      annotate("text", x=Clusters.x[4], y = Clusters.y[4], label = "C4", size=2)
+    plt16 <- ggplot(data=df.MCSA) + 
+      geom_line(aes(Run,AvgLoss,group=factor(Type),color=factor(Type),size=factor(Type))) + 
+      scale_color_manual("",values=c4black) + 
+      scale_size_manual(values = c(0.3, 0.3, 0.3, 0.3, 0.7)) +
+      scale_x_continuous(expand=c(0.01,0.01)) +
+      scale_y_continuous(expand=c(0.01,0.01)) +
+      coord_cartesian(xlim=c(0,1000)) +
+      facet_grid(Test~.,scales="free") + 
+      xlab("Iteration") +      
+      thm2 + 
+      theme(legend.position="none",
+            axis.title.y = element_blank(),
+            plot.margin = unit(c(1.0,1.0,1.0,0.0), "lines"),
+            axis.text.y  = element_text(angle=0, vjust=0.5, size=9, face="bold", colour="black")) +
+      ggtitle("MCSA")
+    
+    filename <- sprintf("pdf/Loss_Test%02d.pdf",TestIndex)
+    pdf(file = filename, width = 6.5, height=3.25, pointsize = 12)
+    grid.arrange(plt,plt16,nrow=1)
+    dev.off()
+    
+  } else {    
+    
+    filename <- sprintf("png/Loss_Test%02d.png",TestIndex)
+    png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+    print(plt)
+    dev.off()
+    filename <- sprintf("pdf/Loss_Test%02d.pdf",TestIndex)
+    ggsave(file=filename,plot=plt,device=pdf,width=6.5, height=3.25,units="in")  
+  }
+  
   
   
   
@@ -967,18 +1027,35 @@ PlotLoss <- function(REP,TestIndex) {
 # 
 # 
 ############################################################################################
-# Distribution plot Main text (Test = 13 or Test = 14 I should chose which one)
-# Load distributions from a sample of N runs from Test = 13/14
-# Set reload TRUE if you want to sample another sample,
-# however, it you need to have the raw simulations data in ../test13/ or ../test14/
-# 
 
-#TestIndexList <- list(14,22,23,25,26,30,31)
+
+TestIndexList <- list(16,22,23,25,26,30,31)
 TestIndexList <- list(16)
 
 for (TestIndex in TestIndexList) { 
+
+  # Read Data
+  # If test 16 (MC) I should read test 17,18,19,20 (MCSAs)
+  # to check which is the one with smaller loss and use only 
+  # That for the distributions.
+  REPs<-list()
+  MCSAlist <- c(17,18,19,20)
+  if (TestIndex == 16) {
+    REPs <- lappend(REPs,ReadData(16))
+    REPs <- lappend(REPs,ReadData(17))
+    min.17 <- min(REPs[[2]]$AvgLoss)
+    REPs <- lappend(REPs,ReadData(18))
+    min.18 <- min(REPs[[3]]$AvgLoss)
+    REPs <- lappend(REPs,ReadData(19))
+    min.19 <- min(REPs[[4]]$AvgLoss)
+    REPs <- lappend(REPs,ReadData(20))
+    min.20 <- min(REPs[[5]]$AvgLoss)
+    min.loss <- which.min(c(min.17,min.18,min.19,min.20)) + 1
+  } else {
+    REPs[[1]] <- ReadData(TestIndex)  
+    min.loss <- 1
+  }
   
-  REP <- ReadData(TestIndex)
   # Load Dists
   # Set reload true if you want to read from raw data
   # otherwise it will use data frame already stored in ana/df.XXX
@@ -988,11 +1065,20 @@ for (TestIndex in TestIndexList) {
   if (TestIndex<14) {
     reload=FALSE
   }
-  Dists <- LoadDists.wrap(REP,TestIndex,reload=reload)
-  df <- Dists[[1]]
-  df.best <- Dists[[2]]
-  df.ref <- Dists[[3]]
-  df.Giu <- Dists[[4]]
+#   if (TestIndex==16) {
+#     Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)
+#     df.16 <- Dists[[1]]
+#     Dists <- LoadDists.wrap(REPs[[min.loss]],MCSAlist[min.loss-1],reload=TRUE)
+#     df.min.loss <- Dists[[1]]
+#     df.min.loss$run <- df.min.loss$run + max(df.16$run) 
+#     df <- rbind(df.16,df.min.loss)    
+#   } else {
+#     Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)  
+#     df <- Dists[[1]]
+#   }
+#   df.best <- Dists[[2]]
+#   df.ref <- Dists[[3]]
+#   df.Giu <- Dists[[4]]
   
   
 #   # Plot distributios
@@ -1014,7 +1100,7 @@ for (TestIndex in TestIndexList) {
 #   if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {
 #     
 #     # Load PMFs
-#     PMFs <- LoadPMF.wrap(REP,TestIndex,reload=TRUE)
+#     PMFs <- LoadPMF.wrap(REPs[[1]],TestIndex,reload=TRUE)
 #     df.fitted <- PMFs[[1]]
 #     df.tobefitted <- PMFs[[2]]
 #     
@@ -1033,8 +1119,26 @@ for (TestIndex in TestIndexList) {
 #   }
   
   # Plot Loss
-  REP <- ReadData(TestIndex)
-  PlotLoss(REP,TestIndex)
+  PlotLoss(REPs,TestIndex)
+
+  # Best Parameters (only for relevant tests)
+  Table <- matrix(0,10,1)
+  if (TestIndex == 16 || TestIndex == 31) {
+    REP <- REPs[[min.loss]]
+    best <- which.min(REP$AvgLoss)
+    Table[1,1] <- REP[best,]$Param1
+    Table[2,1] <- REP[best,]$Param2
+    Table[3,1] <- REP[best,]$Param3
+    Table[4,1] <- REP[best,]$Param1.1
+    Table[5,1] <- REP[best,]$Param2.1
+    Table[6,1] <- REP[best,]$Param3.1
+    Table[7,1] <- REP[best,]$Param1.2
+    Table[8,1] <- REP[best,]$Param2.2*180/pi
+    Table[9,1] <- REP[best,]$Param1.3
+    Table[10,1] <- REP[best,]$Param2.3*180/pi + 180.0
+    filename <- sprintf("BestParameters_Test%02d.dat",TestIndex)
+    write.table(Table,file=filename,row.names=FALSE,col.names=FALSE)    
+  }
   
 } # End loop over TestIndexList
 
