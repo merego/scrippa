@@ -73,9 +73,10 @@ library("fields")
 library("MASS")
 require(gridExtra)
 
-plotphipsi <- TRUE
-plotdists <- TRUE
+plotphipsi <- FALSE
+plotdists <- FALSE
 plotrmsd <- TRUE
+clustering <- FALSE
 halpha<-FALSE
 
 # Load Trajectory
@@ -100,7 +101,7 @@ if (plotphipsi) {
    AllpsiFilename <- ("AllAtomTraj/PDBs/Allpsi.dat")
    recompute <- TRUE
    if (recompute) {
-     for (index in 1:2000) {
+     for (index in 1:5000) {
        filename=paste("AllAtomTraj/PDBs/h",sprintf("%03d",index),".pdb",sep="")
        if (file.exists(filename)) {
         cat(filename,"\n")
@@ -231,6 +232,8 @@ if (plotrmsd) {
 #   points(mo[3,2],mo[3,3],col="yellow")
 # }
 
+# Clustering
+if (clustering) {
  # RMSD Matrix
  recomputeClusters<-TRUE
  if (recomputeClusters) {
@@ -275,6 +278,7 @@ if (plotrmsd) {
      write.pdb(file=filename,xyz=his$xyz.models[clusterindexes,])  
    }
  }
+}
  dev.off()
 # 
 # 

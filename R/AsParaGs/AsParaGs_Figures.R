@@ -396,25 +396,7 @@ LoadDist <- function(idx,TestIndex) {
   df <- LoadCheck(filename,df,type="phi",ptype="Dist")      
   filename <- paste(dir,idx,'/Param15.dat',sep="")
   df <- LoadCheck(filename,df,type="phi",ptype="Dist")      
-  
-  
-#   filename <- paste(dir,idx,'/Param1.dat',sep="")
-#   p1 <- as.data.frame(read.table(filename))
-#   filename <- paste(dir,idx,'/Param2.dat',sep="")
-#   p2 <- as.data.frame(read.table(filename))
-#   filename <- paste(dir,idx,'/Param3.dat',sep="")
-#   p3 <- as.data.frame(read.table(filename))
-#   filename <- paste(dir,idx,'/Param4.dat',sep="")
-#   p4 <- as.data.frame(read.table(filename))
-#   filename <- paste(dir,idx,'/Param15.dat',sep="")
-#   p15 <- as.data.frame(read.table(filename))  
-#   p1.norm <- pnorm(p1,"r13")
-#   p2.norm <- pnorm(p2,"r14")
-#   p3.norm <- pnorm(p3,"theta")
-#   p4.norm <- pnorm(p4,"phi")
-#   p15.norm <- pnorm(p15,"r15")
-#   df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
-#   df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
+
   colnames(df) <- c("x","y","id")
   return(df)
 }
@@ -608,8 +590,9 @@ SetLabels <- function(type) {
          r13 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
          r14 = expression ( paste(r["i,i+3"], " [", ring(A), "]" ) ),
          r15 = expression ( paste(r["i,i+4"], " [", ring(A), "]" ) ),
-         theta = paste(expression(theta),"(Deg)",sep=" "),
-         phi = paste(expression(phi),"(Deg)",sep=" "))
+         theta = expression ( paste(theta," [Deg]",sep=" ") ),
+         phi =  expression ( paste(phi," [Deg]",sep=" ") )
+  )
 }
 
 # Plot dists
@@ -713,29 +696,41 @@ PlotPMFs <- function(df.fitted,df.tobefitted,type,TestIndex) {
     df2.Ref <- df.Ref[df.Ref$run==i,] 
     df2.Prev <- df.Prev[df.Prev$run==i,] 
     # geom_line(data=df2[df2$id==type,],aes(x,Prev),size=1.0,color=c5[5],linetype=3) +     
+    # geom_line(data=na.omit(df2.Prev[df2.Prev$id==type,]),aes(x,Prev),size=0.5,color=c5[5],linetype=3) +
     plt[[i]] <- ggplot(data=na.omit(df1[df1$id==type,])) +
       geom_line(aes(x,y),size=1.0,color="black") +
       geom_line(data=na.omit(df2.Run[df2.Run$id==type,]),aes(x,Run),size=1.0,color=c5[1]) +
       geom_line(data=na.omit(df2.Sum[df2.Sum$id==type,]),aes(x,Sum),size=1.0,color="orange") +
-      geom_line(data=na.omit(df2.Ref[df2.Ref$id==type,]),aes(x,Ref),size=0.5,color=c5[4],linetype=2) +
-      geom_line(data=na.omit(df2.Prev[df2.Prev$id==type,]),aes(x,Prev),size=0.5,color=c5[5],linetype=3) +
+      geom_line(data=na.omit(df2.Ref[df2.Ref$id==type,]),aes(x,Ref),size=1.0,color=c5[4],linetype=2) +      
       scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right
       scale_y_continuous(limits=c(0,maxy)) +
-      xlab(xlab) +
-      ylab("") +
       thm2 +
-      theme(plot.margin = unit(c(0,0,0,0), "cm"),
+      annotate("text", x=r[1]+(r[2]-r[1])/10, y = 1.0, label = i, size=3) +
+      theme(plot.margin = unit(c(0.2,0.2,-1.2,-0.3), "line"),
             axis.text.x  = element_text(angle=0, vjust=0.5, size=8, face="bold", colour="black"),
-            axis.text.y  = element_text(angle=0, vjust=0.5, size=8, face="bold", colour="black")) 
+            axis.title.x  = element_blank(),
+            axis.text.y  = element_text(angle=0, vjust=0.5, size=8, face="bold", colour="black"),
+            axis.title.y  = element_blank())
   }
+  # Do the grobs
+  p <- do.call("arrangeGrob", c(plt, ncol=5)) 
+  # Add x-spanning legend
+  pp <- arrangeGrob(p, 
+                    textGrob(xlab, rot = 0, vjust = 0.2),
+                    heights=c(10,1.0))
+  # Add y-spanning legend
+  ppp <- arrangeGrob(textGrob("PMF (kcal/mol)", rot = 90, vjust = 0.5),
+                     pp,
+                     widths=c(0.5,10),ncol=2)
+  
   
   filename <- sprintf("png/PMF_Test%02d_%s.png",TestIndex,type)
   png(file = filename, width = 6.5, height=6.5, units = 'in', type = "cairo", res = 600)  
-  do.call("grid.arrange", c(plt, ncol=5))
+  print(ppp)
   dev.off()
   filename <- sprintf("pdf/PMF_Test%02d_%s.pdf",TestIndex,type)  
   pdf(file = filename, width = 6.5, height=6.5, pointsize = 12)
-  do.call("grid.arrange", c(plt, ncol=5))  
+  print(ppp)
   dev.off()  
 }
 
@@ -867,9 +862,9 @@ PlotLoss <- function(REPs,TestIndex) {
   # Only if IBI
    if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {       
     maxx <- which.min(REP$AvgLoss)  
-    REP <- REP[c(1:maxx),]    
-    maxLoss <- max(REP$AvgLoss)
-    minLoss <- min(REP$AvgLoss)
+    REP1 <- REP[c(1:maxx),]    
+    maxLoss <- max(REP1$AvgLoss)
+    minLoss <- min(REP1$AvgLoss)
    }
    
   REP.loss <- REP[,c(grep("Loss",colnames(REP)))]    
@@ -891,16 +886,15 @@ PlotLoss <- function(REPs,TestIndex) {
     scale_x_continuous(expand=c(0.01,0.01)) +
     thm2
     
-  # Only if IBI
-  if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {     
-
-    REP.WRMS <- data.frame(cbind(REP$Run, REP[,grep("WRMS.avg",colnames(REP))]) ) 
-    REP.WRMS <- REP.WRMS[-1,]
-    REP.WRMS$WRMS.avg <- rangeAB(REP.WRMS[,2],minLoss,maxLoss)
-    colnames(REP.WRMS) <- c("Run","WRMS.avg.ori","WRMS.avg")#,"r13","theta","r13.s","theta.s")      
-    plt <- plt + 
-      geom_line(data=REP.WRMS,aes(Run,WRMS.avg),size=0.5,linetype=2) 
-  }  
+#   # Only if IBI 
+#   if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {     
+#     REP.WRMS <- data.frame(cbind(REP$Run, REP[,grep("WRMS.avg",colnames(REP))]) ) 
+#     REP.WRMS <- REP.WRMS[-1,]
+#     REP.WRMS$WRMS.avg <- rangeAB(REP.WRMS[,2],minLoss,maxLoss)
+#     colnames(REP.WRMS) <- c("Run","WRMS.avg.ori","WRMS.avg")#,"r13","theta","r13.s","theta.s")      
+#     plt <- plt + 
+#       geom_line(data=REP.WRMS,aes(Run,WRMS.avg),size=0.5,linetype=2) 
+#   }  
   
   # Only if TestIndex == 16 
   if (TestIndex == 16) {
@@ -946,11 +940,43 @@ PlotLoss <- function(REPs,TestIndex) {
     dev.off()
     filename <- sprintf("pdf/Loss_Test%02d.pdf",TestIndex)
     ggsave(file=filename,plot=plt,device=pdf,width=6.5, height=3.25,units="in")  
+  }  
+}
+
+
+BestParameters.tofile <- function(REP.best,TestIndex) {
+  Table <- matrix(0,10,1)
+  Table[1,1] <- REP.best$Param1
+  Table[2,1] <- REP.best$Param2
+  Table[3,1] <- REP.best$Param3
+  Table[4,1] <- REP.best$Param1.1
+  Table[5,1] <- REP.best$Param2.1
+  Table[6,1] <- REP.best$Param3.1
+  Table[7,1] <- REP.best$Param1.2
+  Table[8,1] <- REP.best$Param2.2*180/pi
+  Table[9,1] <- REP.best$Param1.3
+  Table[10,1] <- REP.best$Param2.3*180/pi + 180.0
+  filename <- sprintf("BestParameters_Test%02d.dat",TestIndex)
+  write.table(Table,file=filename,row.names=FALSE,col.names=FALSE)    
+}
+
+BestParameters <- function(REPs,TestIndex) {
+  if (TestIndex == 16) {    
+    TestList <- c(16,17,18,19,20)
+    for (i in c(1:5)) {
+      REP <- REPs[[i]]
+      best <- which.min(REP$AvgLoss)
+      REP.best <- REP[best,]  
+      BestParameters.tofile(REP.best,TestList[i])
+    }    
+  } else if (TestIndex == 31) {        
+    REP <- REPs[[1]]
+    best <- which.min(REP$AvgLoss)
+    REP.best <- REP[best,]  
+    BestParameters.tofile(REP.best,TestIndex)    
+  } else {
+    cat("Optimal parameters are extracted only for TestIndex 16 and 31\n")
   }
-  
-  
-  
-  
 }
 
 ## END FUNCTIONS ##
@@ -1065,20 +1091,20 @@ for (TestIndex in TestIndexList) {
   if (TestIndex<14) {
     reload=FALSE
   }
-#   if (TestIndex==16) {
-#     Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)
-#     df.16 <- Dists[[1]]
-#     Dists <- LoadDists.wrap(REPs[[min.loss]],MCSAlist[min.loss-1],reload=TRUE)
-#     df.min.loss <- Dists[[1]]
-#     df.min.loss$run <- df.min.loss$run + max(df.16$run) 
-#     df <- rbind(df.16,df.min.loss)    
-#   } else {
-#     Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)  
-#     df <- Dists[[1]]
-#   }
-#   df.best <- Dists[[2]]
-#   df.ref <- Dists[[3]]
-#   df.Giu <- Dists[[4]]
+  if (TestIndex==16) {
+    Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)
+    df.16 <- Dists[[1]]
+    Dists <- LoadDists.wrap(REPs[[min.loss]],MCSAlist[min.loss-1],reload=TRUE)
+    df.min.loss <- Dists[[1]]
+    df.min.loss$run <- df.min.loss$run + max(df.16$run) 
+    df <- rbind(df.16,df.min.loss)    
+  } else {
+    Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)  
+    df <- Dists[[1]]
+  }
+  df.best <- Dists[[2]]
+  df.ref <- Dists[[3]]
+  df.Giu <- Dists[[4]]
   
   
 #   # Plot distributios
@@ -1122,23 +1148,7 @@ for (TestIndex in TestIndexList) {
   PlotLoss(REPs,TestIndex)
 
   # Best Parameters (only for relevant tests)
-  Table <- matrix(0,10,1)
-  if (TestIndex == 16 || TestIndex == 31) {
-    REP <- REPs[[min.loss]]
-    best <- which.min(REP$AvgLoss)
-    Table[1,1] <- REP[best,]$Param1
-    Table[2,1] <- REP[best,]$Param2
-    Table[3,1] <- REP[best,]$Param3
-    Table[4,1] <- REP[best,]$Param1.1
-    Table[5,1] <- REP[best,]$Param2.1
-    Table[6,1] <- REP[best,]$Param3.1
-    Table[7,1] <- REP[best,]$Param1.2
-    Table[8,1] <- REP[best,]$Param2.2*180/pi
-    Table[9,1] <- REP[best,]$Param1.3
-    Table[10,1] <- REP[best,]$Param2.3*180/pi + 180.0
-    filename <- sprintf("BestParameters_Test%02d.dat",TestIndex)
-    write.table(Table,file=filename,row.names=FALSE,col.names=FALSE)    
-  }
+  BestParameters(REPs,TestIndex)
   
 } # End loop over TestIndexList
 
