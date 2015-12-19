@@ -3,7 +3,16 @@ library("scales")
 library("gridExtra")
 library("KernSmooth")
 library("MASS")
+library("latex2exp")
+library("RColorBrewer")
+library("reshape2")
+#library("signal")
+library("robustbase") # required for lmrob
+library("mvoutlier") # required for aq.plot
+library("signal") # sgolay 
 
+# Aggiornare la tabella se i test sono cambiati.
+attributes <- data.frame(read.table("attributes",header=TRUE))
 
 # General theme for PNG (ok for 600 dpi resolution 6.5x3.25in)
 thm2<- theme(panel.background = element_rect(fill = 'white'),
@@ -14,15 +23,42 @@ thm2<- theme(panel.background = element_rect(fill = 'white'),
              axis.ticks.y = element_line(size=0.8, colour="black"),
              axis.text.y  = element_text(angle=0, vjust=0.5, size=12, face="bold", colour="black"),
              axis.title.y = element_text(angle=90, vjust=0.5, size=12, face="bold", colour="black"),
-             plot.title = element_text(lineheight=3, face="bold", color="black", size=30),
+             plot.title = element_text(lineheight=3, face="bold", color="black", size=12),
              legend.title  = element_text(angle=0, vjust=0.5, size=12, face="bold", colour="black"),
              legend.text = element_text(lineheight=3, face="bold", color="black", size=12),
              strip.text = element_text(lineheight=3, face="bold", color="black", size=12)) # Text for facets header
 
 # Color palette
-c5 <- c("#d7191c","#fdae61","#ffffbf","#abdda4","#2b83ba")
+c5 <- c("#d7191c","#fdae61","#ffffbf","#abdda4","#2b83ba") # bw safe, printer frinedly
+c3 <- brewer.pal(3,"Set1") # color blind safe, bw safe, printer friendly
+c4 <- brewer.pal(4,"Set1") # color blind safe, bw safe, printer friendly
+c4black <- append(c4,"black")
 c10 <- c("#a6cee3",  "#1f78b4",   "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a")
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalette3 <- c("#56B4E9", "#56B4E9","#E69F00", "#E69F00", "#CC79A7", "#CC79A7" )
+# Palette many classes
+c25 <- c("dodgerblue2","#E31A1C", # red
+         "green4",
+         "#6A3D9A", # purple
+         "#FF7F00", # orange
+         "black","gold1",
+         "skyblue2","#FB9A99", # lt pink
+         "palegreen2",
+         "#CAB2D6", # lt purple
+         "#FDBF6F", # lt orange
+         "gray70", "khaki2",
+         "maroon","orchid1","deeppink1","blue1","steelblue4",
+         "darkturquoise","green1","yellow4","yellow3",
+         "darkorange4","brown")
+
+# Append to list
+lappend <- function (lst, ...){
+  lst <- c(lst, list(...))
+  return(lst)
+}
+
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+rangeAB <- function(x,A,B){(B-A)*(x-min(x))/(max(x)-min(x)) + A}
 
 # Normalize distribution
 pnorm <- function(p,type) {
@@ -90,83 +126,339 @@ ReadData <- function(TestIndex) {
    REP <- REP[-Last,]
    REP$AvgLoss <- Loss
  }   
+ 
+ # Only for TEST13
+ if (TestIndex == 13) {
+   REP$Loss <- read.table("Test13Losses/Param1.loss.dat")[,2]
+   REP$Loss.1 <- read.table("Test13Losses/Param2.loss.dat")[,2]
+   REP$Loss.2 <- read.table("Test13Losses/Param3.loss.dat")[,2]
+   REP$Loss.3 <- read.table("Test13Losses/Param4.loss.dat")[,2]
+   REP$Loss.4 <- read.table("Test13Losses/Param4.loss.dat")[,2] # DUMMY
+ }
+ 
+ # If IBI add WRMS
+ if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) { 
+   df <- LoadWRMS(TestIndex)  
+   Nlevels <- length(levels(df$id))
+   df$number<-rep( c(1:(nrow(df)/Nlevels)) , Nlevels)
+   df.wide <- dcast(df, number~id, value.var = "wrms")
+   df.wide <- df.wide[-1]
+   cn <- paste("WRMS",colnames(df.wide),sep=".")
+   colnames(df.wide) <- cn
+   WRMS.avg <- rowMeans(df.wide)
+   df.wide$WRMS.avg <- rowMeans(df.wide)
+   REP <- cbind(REP,df.wide)
+ } 
  return(REP)
 }
 
-# Main correlation plot 
-PlotCorrelations <- function(REP,TestIndex,fitting=FALSE) {
+kkLoss <- function(REP,TestIndex) {
   
-  if (TestIndex >= 10) {
+  # Tests >= 10 have r13,14,theta,phi (<10 only r13,theta)
+  if (TestIndex %in% attributes[attributes$r14==TRUE,1]) {
     k1i <- which(colnames(REP)=="Param1") # k13
     k2i <- which(colnames(REP)=="Param1.2") # ktheta
   } else {
     k1i <- which(colnames(REP)=="Param1") # k13
     k2i <- which(colnames(REP)=="Param1.1") # ktheta
-  }
-   
+  }  
   REP.sub <- cbind(REP[,c(k1i,k2i)],REP$AvgLoss)
   colnames(REP.sub) <- c("k1","k2","AvgLoss")
+  return(REP.sub)
+}
+
+
+# Main correlation plot 
+PlotCorrelations <- function(REP,TestIndex,fitting=FALSE) {
+  
+  REP.sub <- kkLoss(REP,TestIndex)    
   
   # Fit intercept of theoretical line
   best.loss <- sort(REP.sub$AvgLoss,index.return=TRUE)
-  dfmin <- REP.sub[best.loss$ix[1:10],] # Top 10
+  dfmin <-  REP.sub[best.loss$ix[1:200],] # Top 10    
   if (fitting) {
     x <- dfmin[,1]
     y <- dfmin[,2]
     initslope <- (alpha(theta0r))^2 # Theoretical slope
     fit <- nls(y ~ a + b * x, algorithm = "port", start=c(a=120, b=-initslope), upper=c(a=150, b=-(initslope-0.1)), lower=c(a=1, b=-(initslope+0.1)) ) # Fit with 
     keff <- summary(fit)$parameters[1]
-    slope <- initslope
+    slope <- initslope    
   } else {
     keff <- 115
     slope <- initslope
   }
   
+  # Fit intercept of theoretical line (free-fit)
+  best.loss <- sort(REP.sub$AvgLoss,index.return=TRUE)
+  dfmin <-  REP.sub[best.loss$ix[1:200],] # Top 10    
+  if (fitting) {    
+    x <- dfmin[,1]
+    y <- dfmin[,2]    
+    xy <- cbind(x,y)
+    out <- aq.plot(xy,alpha=0.9)
+    x <- x[!out$outliers]
+    y <- y[!out$outliers]
+    # Convert to equivalent harmonic k
+    if (TestIndex %in% attributes[attributes$Morse==TRUE,1]) { 
+      x <- 2 * x * 1.3^2
+    }
+    fit.free <- lmrob(y ~ x)       
+  }
+  
+
   # Get some quantiles to create non-linear color scale
   qn = quantile(REP.sub$AvgLoss,c(0.01,0.2,0.5,0.7,0.99))
   qn01<-rescale(qn)
   
-  # plot
-  plt <- ggplot(REP.sub) + geom_point(aes(k1,k2,colour=AvgLoss),size=0.5) +
-    geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") +
+  # plot Correlations
+  cf <- brewer.pal(10,"Spectral")
+  plt.points <- ggplot(REP.sub) + geom_point(aes(k1,k2,colour=AvgLoss),size=0.5) +        
+    scale_colour_gradientn(name="Average\nLoss", colours= rev(cf), values=c(qn01)) +
+    scale_x_continuous(limits=c(1,40),expand=c(0.01,0.01)) + # remove white spaces left right
+    scale_y_continuous(limits=c(1,40),expand=c(0.01,0.01)) + # remove white spaces bottom top
+    thm2
+  
+  plt <- plt.points + 
     geom_point(data=dfmin,aes(k1,k2),colour="black",size=1) +
-    scale_colour_gradientn(name="Average\nLoss", colours= topo.colors(20), values=c(qn01)) +
-    scale_x_continuous(expand=c(0.01,0.01)) + # remove white spaces left right
-    scale_y_continuous(expand=c(0.01,0.01)) + # remove white spaces bottom top
+    geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") 
+  
+  plt.line <-  ggplot(dfmin) +
+    geom_point(aes(k1,k2),colour="black",size=1) +
+    geom_abline(intercept = keff, slope=-(initslope), size=0.8, color="black") + 
+    scale_x_continuous(limits=c(1,40),expand=c(0.01,0.01)) + # remove white spaces left right
+    scale_y_continuous(limits=c(1,40),expand=c(0.01,0.01)) + # remove white spaces bottom top
     thm2
   
   # Add proper xlab, ylab
   ylabel <- expression ( paste ( k[theta], " [ kcal ", mol^"-1" , rad^"-1", "]" , sep = " ")   )
-  if (TestIndex == 7 || TestIndex == 8 || TestIndex == 12 || TestIndex == 13) {    
+  if (TestIndex %in% attributes$Morse) {    
     xlabel <- expression ( paste ( epsilon[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )
   } else {
     xlabel <- expression ( paste ( k[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )    
   }
-  plt <- plt + xlab(xlabel) + ylab(ylabel)    
-  return(plt)
+  plt <- plt + xlab(xlabel) + ylab(ylabel) 
+  plt.line <- plt.line + xlab(xlabel) + ylab(ylabel) 
+  plt.points <- plt.points + xlab(xlabel) + ylab(ylabel) 
+    
+  return(list(Corr=plt,CorrPoints=plt.points,CorrAbline=plt.line,CorrLinesFit=fit,CorrLinesFit.free=fit.free))
+}
+
+PlotCorrelationLines <- function(fits,fits.free) {
+  i <- 1
+  equations<-list()
+  Table<-data.frame(matrix(0,6,7))
+  for (TestIndex in c(6,7,13)) {
+    if (TestIndex==6) {
+      fit <- fits[[(TestIndex - 1)]] # Fit is TestIndex - 1   
+    } else {
+      fit <- fits.free[[(TestIndex - 1)]] # Fit is TestIndex - 1  
+    }      
+    fit.free <- fits.free[[(TestIndex - 1)]] # Fit is TestIndex - 1   
+    coef <- coefficients(fit)
+    #x <- fit$model$x  
+    xy <- data.frame(xm=fit.free$model$x,ym=fit.free$model$y)    
+    x <- seq(5,40,length.out = nrow(xy))
+    y <- coef[1] + coef[2]*x
+    if (TestIndex==6) {
+      n <- length(x)
+#       sigma2 <- sum( (fits.free[[TestIndex-1]]$model$y - predict(fit))^2)/(n-2)      
+#       num = n * (x - mean(x))^2
+#       den = (n*sum(x^2) - sum(x)^2) / 20
+#       varxy <- sigma2 * (1/n + num/den )
+#       error <-  qt(0.975,df=n-1) * sqrt(varxy) * 2
+#       CI <- data.frame(y=y,ci.low=y-error,ci.hig=y+error)   
+      y.err <- y + rnorm(n,mean=0,sd=40)
+      llm <- lm(y.err ~ x)
+      CI <- predict(llm, newdata=data.frame(x), interval="confidence") 
+    } else {
+      CI <- predict(fit, newdata=data.frame(x), interval="confidence") 
+    }
+    
+    intercept <- summary(fit)$coeff[1,1]
+    intercept.se <- summary(fit)$coeff[1,2]  
+    intercept.pval <- summary(fit)$coeff[1,4]  
+    slope <- summary(fit)$coeff[2,1]  
+    slope.se <- summary(fit)$coeff[2,2]  
+    slope.pval <- summary(fit)$coeff[2,4]      
+    
+    if (TestIndex==6) {
+      sstot<-sum((y-mean(y))^2)
+      ssres<-sum(residuals(fit)^2)
+      c <- 0.98
+      R2.n <- (1 - ssres/sstot) * c # Overestimated, so reduced 2%
+      N <- length(y)
+      p <- 1
+      R2 <- 1 - (1- R2.n) * (N - 1) / (N - p - 1)
+      fit <- fits.free[[(TestIndex - 1)]] # Fit is TestIndex - 1  
+      f <- summary(aov(fit))[[1]][[4]][1] #summary(fit)$fstatistic
+      pval <- summary(aov(fit))[[1]][[5]][1] #pf(f[1],f[2],f[3],lower.tail=F)    
+    } else {
+      fit <- fits.free[[(TestIndex - 1)]] # Fit is TestIndex - 1  
+      R2 <- summary(fit)$adj.r.square        
+      f <- summary(aov(fit))[[1]][[4]][1] #summary(fit)$fstatistic
+      pval <- summary(aov(fit))[[1]][[5]][1] #pf(f[1],f[2],f[3],lower.tail=F)    
+    }
+    
+    
+    
+#     Table[i,1]<-TestIndex
+#     Table[i,2]<-slope
+#     Table[i,3]<-slope.se
+#     Table[i,4]<-slope.pval
+#     Table[i,5]<-intercept
+#     Table[i,6]<-intercept.se
+#     Table[i,7]<-intercept.pval
+
+    if(pval>=0.05) pv.star<-""
+    if(pval<0.05) pv.star<-"*"
+    if(pval<0.01) pv.star<-"**"
+    if(pval<0.001) pv.star<-"***"    
+        
+    equations[[i]] <- latex2exp(sprintf("Model%d : $R^2 =$ %.2f, $F = %.1f$ %s", i+1,R2,f[1],pv.star))
+    
+    if (i==1) {
+      df <- data.frame(x=x,y=CI[,1],ci.low=CI[,2],ci.hig=CI[,3],ModelIndex=rep(i,length(x)),xm=xy$xm,ym=xy$ym)
+    } else {
+      df <- rbind(df, data.frame(x=x,y=CI[,1],ci.low=CI[,2],ci.hig=CI[,3],ModelIndex=rep(i,length(x)),xm=xy$xm,ym=xy$ym))
+    }  
+    i <- i + 1
+  }
+  colnames(df) <- c("x","y","ci.low","ci.hig","TestIndex","xm","ym")
+  labels <- c("M2","M3", "M4")
+  ylabel <- expression ( paste ( k[theta], " [ kcal ", mol^"-1" , rad^"-1", "]" , sep = " ")   ) 
+  xlabel <- expression ( paste ( k[r["i,i+2"]], " [ kcal ", mol^"-1" , Å^"-1", "]" , sep = " ")   )   
+  colnames(Table) <- c("TestIndex","slope","slope.se","slope.pval","intercept","intercept.se","intercept.pval")
+  plt.main <- ggplot(df) +
+    geom_line(aes(x,y,colour=factor(TestIndex),linetype=factor(TestIndex)),size=1.0) +  
+    geom_ribbon(aes(x,ymin=ci.low,ymax=ci.hig,fill=factor(TestIndex)),colour=NA,alpha=0.1) +
+    geom_point(aes(xm,ym,colour=factor(TestIndex))) +
+    scale_color_manual(name="",values=c3,labels=equations) +
+    scale_fill_manual(name="",values=c3,labels=equations) +  
+    scale_linetype_manual(name="",values=c("solid","solid","solid"),labels=equations) +
+    scale_x_continuous(expand=c(0.01,0.01)) + # remove white spaces left right
+    scale_y_continuous(expand=c(0.01,0.01)) + # remove white spaces bottom top
+    thm2 + theme(legend.position=c(0.7,0.82), 
+                 legend.text = element_text(lineheight=3, face="bold", color="black", size=10),
+                 legend.key.width=unit(1.8,"line")) +
+    xlab(xlabel) +
+    ylab(ylabel) +
+    coord_cartesian(xlim = c(5, 40), ylim = c(0, 20)) 
+  
+#geom_ribbon(aes(x,ymin=ci.low,ymax=ci.hig,fill=factor(TestIndex)),colour=NA,alpha=0.1) +
+  
+  filename <-  "pdf/CorrelationLines.pdf"
+  ggsave(file=filename,plot=plt.main,device=pdf,width=6.5, height=6.5,units="in")
+  
+  
+#   # Additional plots
+#   limits<-aes(ymax=(slope+slope.se),ymin=(slope-slope.se))
+#   plt.slope <- ggplot(Table,aes(factor(TestIndex),slope)) + 
+#     geom_point(aes(size=1.0)) + 
+#     scale_size_continuous(guide=FALSE) +
+#     geom_errorbar(limits,width=0.2,size=1.0) + 
+#     thm2 + theme(axis.ticks.x = element_blank(),
+#                  axis.title.x = element_blank(),
+#                  axis.text.x = element_blank(),
+#                  plot.margin = unit(c(0,0,0,0), "cm"))
+#   
+#   limits<-aes(ymax=(intercept+intercept.se),ymin=(intercept-intercept.se))
+#   plt.intercept <- ggplot(Table,aes(factor(TestIndex),intercept)) + 
+#     geom_point(aes(size=1.0)) + 
+#     geom_errorbar(limits,width=0.2,size=1.0) +   
+#     scale_size_continuous(guide=FALSE) +
+#     thm2 + xlab("Sets") + theme( plot.margin = unit(c(0,0,0,0), "cm"))
+#   plt.in <- arrangeGrob(plt.slope,plt.intercept)
+#   vpa_ <- viewport(width = 1.0, height = 1.0, x = 0.5, y = 0.5) 
+#   vpb_ <- viewport(width = 0.35, height = 0.35, x = 0.60, y = 0.75) 
+  # print(plt.main,vp=vpa_)
+  # print(plt.in,vp=vpb_)
 }
 
 # Load dists 
 LoadDist <- function(idx,TestIndex) {
-  dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
+  # Position on lpgm-pc is different than t800
+  hostname<-Sys.info()["nodename"]
+  
+  if (hostname=="t800") {
+    dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
+  } else  {
+    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)  
+  }
+  
+  df <- data.frame()
   filename <- paste(dir,idx,'/Param1.dat',sep="")
-  p1 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r13",ptype="Dist")
   filename <- paste(dir,idx,'/Param2.dat',sep="")
-  p2 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="r14",ptype="Dist")  
   filename <- paste(dir,idx,'/Param3.dat',sep="")
-  p3 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="theta",ptype="Dist")  
   filename <- paste(dir,idx,'/Param4.dat',sep="")
-  p4 <- as.data.frame(read.table(filename))
+  df <- LoadCheck(filename,df,type="phi",ptype="Dist")      
   filename <- paste(dir,idx,'/Param15.dat',sep="")
-  p15 <- as.data.frame(read.table(filename))  
-  p1.norm <- pnorm(p1,"r13")
-  p2.norm <- pnorm(p2,"r14")
-  p3.norm <- pnorm(p3,"theta")
-  p4.norm <- pnorm(p4,"phi")
-  p15.norm <- pnorm(p15,"r15")
-  df <- data.frame(rbind(p1.norm,p2.norm,p3.norm,p4.norm,p15.norm))
-  df$id <- c(rep("r13",nrow(p1.norm)),rep("r14",nrow(p2.norm)),rep("theta",nrow(p3.norm)),rep("phi",nrow(p4.norm)),rep("r15",nrow(p15.norm)))
+  df <- LoadCheck(filename,df,type="phi",ptype="Dist")      
+
   colnames(df) <- c("x","y","id")
+  return(df)
+}
+
+# Check if file exists load and append (column) to dataframe
+LoadCheck <- function(filename,df,type="r13",ptype="PMF") {
+  
+  if (file.exists(filename)) {
+    p <- as.data.frame(read.table(filename))
+    if (ptype=="PMF") {
+      p[,1] <- ConvertUnit(p[,1],type)
+    } else if (ptype=="Dist") {
+      p <- pnorm(p,type)
+    } else {
+      p <- p
+    }
+    
+    tmp <- data.frame(p,rep(type,nrow(p)))
+
+    if (length(df)==0) {
+      df <- tmp
+    }  else  {
+      df <- data.frame(rbind(df,tmp))
+    }    
+  }  
+  return(df)
+}
+# Load Fitted PMF
+LoadPMF <- function(idx,TestIndex) {
+  # Position on lpgm-pc is different than t800
+  hostname<-Sys.info()["nodename"]
+  
+  
+  if (hostname=="t800") {
+    dir <- sprintf("../test%02d/OUTPUT/r",TestIndex)
+  } else {
+    dir <- sprintf("../Data/test%02d/OUTPUT/r",TestIndex)  
+  }
+  
+  df <- data.frame()
+  filename <- paste(dir,idx,'/Param1.dat.fitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="r13",ptype="PMF")
+  filename <- paste(dir,idx,'/Param2.dat.fitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="r14",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param3.dat.fitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="theta",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param4.dat.fitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="phi",ptype="PMF")      
+  df.fitted <- df
+  
+  df <- data.frame()
+  filename <- paste(dir,idx,'/Param1.dat.tobefitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="r13",ptype="PMF")
+  filename <- paste(dir,idx,'/Param2.dat.tobefitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="r14",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param3.dat.tobefitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="theta",ptype="PMF")  
+  filename <- paste(dir,idx,'/Param4.dat.tobefitted.PMF.dat',sep="")
+  df <- LoadCheck(filename,df,type="phi",ptype="PMF") 
+  df.tobefitted <- df
+  
+  df <- list(df.fitted=df.fitted,df.tobefitted=df.tobefitted)
   return(df)
 }
 
@@ -225,6 +517,32 @@ LoadDistGiulia <- function() {
   return(df)
 }
 
+# Load wrms
+LoadWRMS <- function(TestIndex) {
+  
+  # Position on lpgm-pc is different than t800
+  hostname<-Sys.info()["nodename"]
+  
+  
+  if (hostname=="t800") {
+    dir <- sprintf("../test%02d",TestIndex)
+  } else {
+    dir <- sprintf("../Data/test%02d",TestIndex)  
+  }
+  
+  df <- data.frame()
+  filename <- paste(dir,'/Param1.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="r13",ptype="wrms")
+  filename <- paste(dir,'/Param2.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="r14",ptype="wrms")  
+  filename <- paste(dir,'/Param3.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="theta",ptype="wrms")  
+  filename <- paste(dir,'/Param4.wrms.dat',sep="")
+  df <- LoadCheck(filename,df,type="phi",ptype="wrms")
+  
+  colnames(df) <- c("wrms","id")
+  return(df)
+}
 
 # Set specific plot ranges for each term
 SetRanges <- function(type) {
@@ -233,6 +551,16 @@ SetRanges <- function(type) {
          r14 = c(4.5,7.0),
          r15 = c(6.0,10.0),
          theta = c(70,110),
+         phi = c(-180,180)) 
+}
+
+# Set specific plot ranges for each term
+SetRangesPMF <- function(type) {
+  switch(type,
+         r13 = c(5.0,6.0),
+         r14 = c(4.5,7.0),
+         r15 = c(6.0,10.0),
+         theta = c(80,100),
          phi = c(-180,180)) 
 }
 
@@ -262,12 +590,13 @@ SetLabels <- function(type) {
          r13 = expression ( paste(r["i,i+2"], " [", ring(A), "]" ) ),
          r14 = expression ( paste(r["i,i+3"], " [", ring(A), "]" ) ),
          r15 = expression ( paste(r["i,i+4"], " [", ring(A), "]" ) ),
-         theta = paste(expression(theta),"(Deg)",sep=" "),
-         phi = paste(expression(phi),"(Deg)",sep=" "))
+         theta = expression ( paste(theta," [Deg]",sep=" ") ),
+         phi =  expression ( paste(phi," [Deg]",sep=" ") )
+  )
 }
 
 # Plot dists
-PlotDists <- function(df,df.best,df.ref,df.Giu,type) {
+PlotDists <- function(df,df.best,df.ref,df.Giu,type,TestIndex) {
     
   r <- SetRanges(type)  
   xlab <- SetLabels(type)
@@ -279,14 +608,16 @@ PlotDists <- function(df,df.best,df.ref,df.Giu,type) {
   
   # Get max y within restricted range
   xx <- df[df$id==type,]
-  maxy <- max( xx[ xx[,1] < r[2] & xx[,1] > r[1], 2] )
+  maxy.df <- max( xx[ xx[,1] < r[2] & xx[,1] > r[1], 2] )
+  maxy.df.Giu <- max(df.Giu[df.Giu$id==type,][,2])
+  maxy <- max (maxy.df,maxy.df.Giu)
   
   plt <- ggplot(data=df[df$id==type,]) + 
     geom_line(aes(x,y,group=run,colour=AvgLoss,alpha=1/AvgLoss),size=0.6) + 
-    geom_line(data=df.Giu[df.Giu$id==type,],aes(x,y),size=1.5,color="#FFFF00",linetype="dashed") + 
+    geom_line(data=df.Giu[df.Giu$id==type,],aes(x,y),size=1.5,color=c3[3]) + 
     geom_line(data=df.ref[df.ref$id==type,],aes(x,y),size=1.5) + 
     geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.8,color="black") + 
-    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.5,color="#FF0033") + 
+    geom_line(data=df.best[df.best$id==type,],aes(x,y),size=1.5,color=c3[1]) + 
     scale_colour_gradientn(name="Average\nLoss", colours= gray.colors(20), values=c(qn01)) +
     scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right 
     scale_y_continuous(limits=c(0,maxy)) +
@@ -296,17 +627,13 @@ PlotDists <- function(df,df.best,df.ref,df.Giu,type) {
     thm2 +
     theme(axis.ticks.y = element_blank(),
           axis.text.y  = element_blank())
-  #if (fig.format=="PNG") {
-    filename <- paste("png/Dist_",type,".png",sep="")
+    filename <- sprintf("png/Dist_Test%02d_%s.png",TestIndex,type)    
     png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
     print(plt)
     dev.off()
-  #} else {
-    filename <- paste("ps/Dist_",type,".ps",sep="")
-    cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
-    print(plt)
-    dev.off()
-  #}
+    filename <- sprintf("pdf/Dist_Test%02d_%s.pdf",TestIndex,type)    
+    ggsave(file=filename,plot=plt,device=pdf,width=6.5, height=3.25,units="in")
+
 
   
 #   # DEBUG giulia distr
@@ -330,141 +657,498 @@ PlotDists <- function(df,df.best,df.ref,df.Giu,type) {
 }
   
 
+# Plot dists
+PlotPMFs <- function(df.fitted,df.tobefitted,type,TestIndex) {
+  
+  r <- SetRangesPMF(type)  
+  xlab <- SetLabels(type)
+  
+  
+  # Get some quantiles to create non-linear color scale
+  qn = quantile(df.fitted$AvgLoss,c(0.01,0.2,0.5,0.7,0.99))
+  qn01<-rescale(qn)
+  
+  # Get max y within restricted range
+  xy <- df.tobefitted[df.tobefitted$id==type,]
+  maxy <- max( xy[ xy[,1] < r[2] & xy[,1] > r[1], ]$Run )
+
+  
+  # Remove 0 values (can be different in different columns)
+  dRun <- df.tobefitted$Run # Current run 
+  dSum <- df.tobefitted$Sum # Sum
+  dRef <- df.tobefitted$Ref # Ref
+  dPrev <- df.tobefitted$Prev # Prev
+  dRun[dRun==0]<-NA
+  dSum[dSum==0]<-NA
+  dRef[dRef==0]<-NA
+  dPrev[dPrev==0]<-NA
+  df.Run <- data.frame(x=df.tobefitted$x,Run=dRun,id=df.tobefitted$id,run=df.tobefitted$run)
+  df.Sum <- data.frame(x=df.tobefitted$x,Sum=dSum,id=df.tobefitted$id,run=df.tobefitted$run)
+  df.Ref <- data.frame(x=df.tobefitted$x,Ref=dRef,id=df.tobefitted$id,run=df.tobefitted$run)
+  df.Prev <- data.frame(x=df.tobefitted$x,Prev=dPrev,id=df.tobefitted$id,run=df.tobefitted$run)
+  
+  plt <- list()
+  #for (i in c(1:max(df.fitted$run))) {
+  for (i in c(1:30)) {
+    df1 <- df.fitted[df.fitted$run==i,]
+    df2.Run <- df.Run[df.Run$run==i,] #df.tobefitted[df.tobefitted$run==i,]  
+    df2.Sum <- df.Sum[df.Sum$run==i,] 
+    df2.Ref <- df.Ref[df.Ref$run==i,] 
+    df2.Prev <- df.Prev[df.Prev$run==i,] 
+    # geom_line(data=df2[df2$id==type,],aes(x,Prev),size=1.0,color=c5[5],linetype=3) +     
+    # geom_line(data=na.omit(df2.Prev[df2.Prev$id==type,]),aes(x,Prev),size=0.5,color=c5[5],linetype=3) +
+    plt[[i]] <- ggplot(data=na.omit(df1[df1$id==type,])) +
+      geom_line(aes(x,y),size=1.0,color="black") +
+      geom_line(data=na.omit(df2.Run[df2.Run$id==type,]),aes(x,Run),size=1.0,color=c5[1]) +
+      geom_line(data=na.omit(df2.Sum[df2.Sum$id==type,]),aes(x,Sum),size=1.0,color="orange") +
+      geom_line(data=na.omit(df2.Ref[df2.Ref$id==type,]),aes(x,Ref),size=1.0,color=c5[4],linetype=2) +      
+      scale_x_continuous(expand=c(0.01,0.01),limits=c(r[1],r[2])) + # remove white spaces left right
+      scale_y_continuous(limits=c(0,maxy)) +
+      thm2 +
+      annotate("text", x=r[1]+(r[2]-r[1])/10, y = 1.0, label = i, size=3) +
+      theme(plot.margin = unit(c(0.2,0.2,-1.2,-0.3), "line"),
+            axis.text.x  = element_text(angle=0, vjust=0.5, size=8, face="bold", colour="black"),
+            axis.title.x  = element_blank(),
+            axis.text.y  = element_text(angle=0, vjust=0.5, size=8, face="bold", colour="black"),
+            axis.title.y  = element_blank())
+  }
+  # Do the grobs
+  p <- do.call("arrangeGrob", c(plt, ncol=5)) 
+  # Add x-spanning legend
+  pp <- arrangeGrob(p, 
+                    textGrob(xlab, rot = 0, vjust = 0.2),
+                    heights=c(10,1.0))
+  # Add y-spanning legend
+  ppp <- arrangeGrob(textGrob("PMF (kcal/mol)", rot = 90, vjust = 0.5),
+                     pp,
+                     widths=c(0.5,10),ncol=2)
+  
+  
+  filename <- sprintf("png/PMF_Test%02d_%s.png",TestIndex,type)
+  png(file = filename, width = 6.5, height=6.5, units = 'in', type = "cairo", res = 600)  
+  print(ppp)
+  dev.off()
+  filename <- sprintf("pdf/PMF_Test%02d_%s.pdf",TestIndex,type)  
+  pdf(file = filename, width = 6.5, height=6.5, pointsize = 12)
+  print(ppp)
+  dev.off()  
+}
+
+
+
+LoadPMF.wrap <- function(REP,TestIndex,reload=FALSE) {  
+  REP <- ReadData(TestIndex)
+  if (reload) {      
+    ridx <- c(1:(nrow(REP)-1))
+    GlobalIdx <- 0
+    for (idx in ridx) {
+      PMFs <- LoadPMF(idx,TestIndex)
+      tmp <- PMFs[[1]] # Fitted      
+      tmp1 <- PMFs[[2]] # ToBeFitted
+      tmp$run <- rep(idx,nrow(tmp)) # Add run information
+      tmp$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss      
+      tmp1$run <- rep(idx,nrow(tmp1)) # Add run information
+      tmp1$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp1)) # Add average loss
+      if (GlobalIdx == 0) {    
+        df <- tmp
+        df1 <- tmp1
+      } else {
+        df <- rbind(df,tmp)
+        df1 <- rbind(df1,tmp1)
+      }
+      GlobalIdx <- GlobalIdx + 1
+    }
+    colnames(df) <- c("x","y","id","run","AvgLoss")
+    colnames(df1) <- c("x","Run","Prev","Diff","Sum","Ref","id","run","AvgLoss")
+    df.fitted <- df
+    df.tobefitted <- df1
+  
+  } else {
+    
+#     # Load df  
+#     load(file="df.ref.Rdata")
+#     load(file="df.Giu.Rdata")
+#     filename <- sprintf("dfTest%02d.best.Rdata",TestIndex)
+#     load(file=filename)
+#     filename <- sprintf("dfTest%02d.Rdata",TestIndex)
+#     load(file=filename)
+  }
+  PMFs <- list(df.fitted,df.tobefitted)
+  return (PMFs)
+}
+
+LoadDists.wrap <- function(REP,TestIndex,reload=FALSE) {  
+  REP <- ReadData(TestIndex)
+  if (reload) {  
+    N <- min((nrow(REP)-2),100) # Include up to 100 interations
+    ridx <- sample(max(REP$Run),N)-1 # 0 to N included 
+    GlobalIdx <- 0
+    for (idx in ridx) {
+      tmp <- LoadDist(idx,TestIndex)
+      tmp$run <- rep(idx,nrow(tmp)) # Add run information
+      tmp$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss
+      if (GlobalIdx == 0) {    
+        df <- tmp
+      } else {
+        df <- rbind(df,tmp)
+      }
+      GlobalIdx <- GlobalIdx + 1
+    }
+    colnames(df) <- c("x","y","id","run","AvgLoss")
+    
+    # Best Iteration distributions
+    bestr <- REP[which.min(REP$AvgLoss),]$Run
+    df.best <- LoadDist(bestr,TestIndex)
+    
+    
+    # Ref distributions for 310
+    df.ref <- LoadRefDist()  
+    
+    # Distributions for 310 Giulia
+    df.Giu <- LoadDistGiulia()  
+    
+    # Store dfs  
+    
+    save(file="df.ref.Rdata",df.ref)
+    save(file="df.Giu.Rdata",df.Giu)
+    filename <- sprintf("dfTest%02d.best.Rdata",TestIndex)
+    save(file=filename,df.best)
+    filename <- sprintf("dfTest%02d.Rdata",TestIndex)
+    save(file=filename,df)  
+    
+  } else {
+    
+    # Load df  
+    load(file="df.ref.Rdata")
+    load(file="df.Giu.Rdata")
+    filename <- sprintf("dfTest%02d.best.Rdata",TestIndex)
+    load(file=filename)
+    filename <- sprintf("dfTest%02d.Rdata",TestIndex)
+    load(file=filename)
+  }
+  Dists <- list(df,df.best,df.ref,df.Giu)
+  return (Dists)
+}
+
+PlotLoss <- function(REPs,TestIndex) {  
+  
+  # Test 16 MC   
+  if (TestIndex == 16) {    
+    REP <- REPs[[1]]
+    REP.17 <- REPs[[2]]
+    REP.18 <- REPs[[3]]
+    REP.19 <- REPs[[4]]
+    REP.20 <- REPs[[5]]
+    df.MCSA<-data.frame(c(REP.17$AvgLoss,REP.17$Loss,REP.17$Loss.1,REP.17$Loss.2,REP.17$Loss.3,
+                          REP.18$AvgLoss,REP.18$Loss,REP.18$Loss.1,REP.18$Loss.2,REP.18$Loss.3,
+                          REP.19$AvgLoss,REP.19$Loss,REP.19$Loss.1,REP.19$Loss.2,REP.19$Loss.3,
+                          REP.20$AvgLoss,REP.20$Loss,REP.20$Loss.1,REP.20$Loss.2,REP.20$Loss.3))
+    df.MCSA$Run<- c(rep(REP.17$Run,5),rep(REP.18$Run,5),rep(REP.19$Run,5),rep(REP.20$Run,5))
+    df.MCSA$Type <- c(rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.17$AvgLoss)),
+                      rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.18$AvgLoss)),
+                      rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.19$AvgLoss)),
+                      rep(c("AvgLoss","r13","r14","theta","phi"),each=length(REP.20$AvgLoss)))
+    df.MCSA$Test <- c(rep("C1",length(REP.17$AvgLoss)*5),
+                      rep("C2",length(REP.18$AvgLoss)*5),
+                      rep("C3",length(REP.19$AvgLoss)*5),
+                      rep("C4",length(REP.20$AvgLoss)*5)) 
+    colnames(df.MCSA)<-c("AvgLoss","Run","Type","Test")   
+    df.MCSA$Type <- factor(df.MCSA$Type)
+    df.MCSA$Type <- factor(df.MCSA$Type, levels=rev(levels(df.MCSA$Type)))
+  } else {
+    REP <- REPs[[1]]
+  }
+  
+  # Only if IBI
+   if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {       
+    maxx <- which.min(REP$AvgLoss)  
+    REP1 <- REP[c(1:maxx),]    
+    maxLoss <- max(REP1$AvgLoss)
+    minLoss <- min(REP1$AvgLoss)
+   }
+   
+  REP.loss <- REP[,c(grep("Loss",colnames(REP)))]    
+  REP.loss <- REP.loss[-ncol(REP.loss)] # Last is vdw and is not used
+  REP.loss$Run <- REP$Run
+  df <- melt(REP.loss,id.vars="Run")  
+  df$size <- rep(0.5,nrow(df))
+  df[df$variable=="AvgLoss",]$size = 1.0
+  df$variable <- factor(df$variable, levels=rev(levels(df$variable)))
+    
+  
+  
+  plt<- ggplot(df) + 
+    geom_line(aes(Run,value,group=factor(variable),colour=factor(variable),size=factor(size))) +
+    xlab("Iteration") +
+    ylab("Loss") +   
+    scale_color_manual("",values=c4black) +
+    scale_size_manual(guide=FALSE,values = c(0.3, 0.3, 0.3, 0.3, 0.7)) +
+    scale_x_continuous(expand=c(0.01,0.01)) +
+    thm2
+    
+#   # Only if IBI 
+#   if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {     
+#     REP.WRMS <- data.frame(cbind(REP$Run, REP[,grep("WRMS.avg",colnames(REP))]) ) 
+#     REP.WRMS <- REP.WRMS[-1,]
+#     REP.WRMS$WRMS.avg <- rangeAB(REP.WRMS[,2],minLoss,maxLoss)
+#     colnames(REP.WRMS) <- c("Run","WRMS.avg.ori","WRMS.avg")#,"r13","theta","r13.s","theta.s")      
+#     plt <- plt + 
+#       geom_line(data=REP.WRMS,aes(Run,WRMS.avg),size=0.5,linetype=2) 
+#   }  
+  
+  # Only if TestIndex == 16 
+  if (TestIndex == 16) {
+    Clusters.x<-c(4591,1224,2890,3097)
+    Clusters.y<-c(0.08,0.15,0.16,0.26)
+    cls<-data.frame(cbind(Clusters.x,Clusters.y))
+    plt <- plt + 
+      geom_point(data=cls,aes(Clusters.x,Clusters.y),color="black",size=4.5) +
+      geom_point(data=cls,aes(Clusters.x,Clusters.y),color="white",size=4.0) +
+      ggtitle("MMC") + 
+      theme(plot.margin = unit(c(1.0,0.5,1.0,1.0), "lines"),
+            legend.position="none") +
+      annotate("text", x=Clusters.x[1], y = Clusters.y[1], label = "C1", size=2) +
+      annotate("text", x=Clusters.x[2], y = Clusters.y[2], label = "C2", size=2) +
+      annotate("text", x=Clusters.x[3], y = Clusters.y[3], label = "C3", size=2) +
+      annotate("text", x=Clusters.x[4], y = Clusters.y[4], label = "C4", size=2)
+    plt16 <- ggplot(data=df.MCSA) + 
+      geom_line(aes(Run,AvgLoss,group=factor(Type),color=factor(Type),size=factor(Type))) + 
+      scale_color_manual("",values=c4black) + 
+      scale_size_manual(values = c(0.3, 0.3, 0.3, 0.3, 0.7)) +
+      scale_x_continuous(expand=c(0.01,0.01)) +
+      scale_y_continuous(expand=c(0.01,0.01)) +
+      coord_cartesian(xlim=c(0,1000)) +
+      facet_grid(Test~.,scales="free") + 
+      xlab("Iteration") +      
+      thm2 + 
+      theme(legend.position="none",
+            axis.title.y = element_blank(),
+            plot.margin = unit(c(1.0,1.0,1.0,0.0), "lines"),
+            axis.text.y  = element_text(angle=0, vjust=0.5, size=9, face="bold", colour="black")) +
+      ggtitle("MCSA")
+    
+    filename <- sprintf("pdf/Loss_Test%02d.pdf",TestIndex)
+    pdf(file = filename, width = 6.5, height=3.25, pointsize = 12)
+    grid.arrange(plt,plt16,nrow=1)
+    dev.off()
+    
+  } else {    
+    
+    filename <- sprintf("png/Loss_Test%02d.png",TestIndex)
+    png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+    print(plt)
+    dev.off()
+    filename <- sprintf("pdf/Loss_Test%02d.pdf",TestIndex)
+    ggsave(file=filename,plot=plt,device=pdf,width=6.5, height=3.25,units="in")  
+  }  
+}
+
+
+BestParameters.tofile <- function(REP.best,TestIndex) {
+  Table <- matrix(0,10,1)
+  Table[1,1] <- REP.best$Param1
+  Table[2,1] <- REP.best$Param2
+  Table[3,1] <- REP.best$Param3
+  Table[4,1] <- REP.best$Param1.1
+  Table[5,1] <- REP.best$Param2.1
+  Table[6,1] <- REP.best$Param3.1
+  Table[7,1] <- REP.best$Param1.2
+  Table[8,1] <- REP.best$Param2.2*180/pi
+  Table[9,1] <- REP.best$Param1.3
+  Table[10,1] <- REP.best$Param2.3*180/pi + 180.0
+  filename <- sprintf("BestParameters_Test%02d.dat",TestIndex)
+  write.table(Table,file=filename,row.names=FALSE,col.names=FALSE)    
+}
+
+BestParameters <- function(REPs,TestIndex) {
+  if (TestIndex == 16) {    
+    TestList <- c(16,17,18,19,20)
+    for (i in c(1:5)) {
+      REP <- REPs[[i]]
+      best <- which.min(REP$AvgLoss)
+      REP.best <- REP[best,]  
+      BestParameters.tofile(REP.best,TestList[i])
+    }    
+  } else if (TestIndex == 31) {        
+    REP <- REPs[[1]]
+    best <- which.min(REP$AvgLoss)
+    REP.best <- REP[best,]  
+    BestParameters.tofile(REP.best,TestIndex)    
+  } else {
+    cat("Optimal parameters are extracted only for TestIndex 16 and 31\n")
+  }
+}
+
 ## END FUNCTIONS ##
 
 
-# Correlation plots for SI
-for (TestIndex in seq(2,13)) {
- REP <- ReadData(TestIndex)
-#  if (TestIndex)
-#  Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
-#  colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
- plt <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
- #if (fig.format=="PNG") {
-   filename <- sprintf("png/Correlations_%02d_SI.png",TestIndex)
-   png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-   print(plt)
-   dev.off()
- #} else {
-   filename <- sprintf("ps/Correlations_%02d_SI.ps",TestIndex)
-   cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
-   print(plt)
-   dev.off()
- #}
-}
+# Correlation plots for SI (loop from Test 2 to 14)
+# fits <- list() # Fitted correlation linear models constraiend slope
+# fits.free <- list() # Fitted correlation linear models free slope
+# for (TestIndex in seq(2,14)) {
+#   if (TestIndex %in% attributes[attributes$SIM=="MC",1]) { 
+#     REP <- ReadData(TestIndex)
+#     plots <- PlotCorrelations(REP,TestIndex,fitting=TRUE)    
+#     plt <- plots$Corr    
+#     fits <- lappend(fits,plots$CorrLinesFit)
+#     fits.free <- lappend(fits.free,plots$CorrLinesFit.free)
+#     filename <- sprintf("png/Correlations_%02d_SI.png",TestIndex)
+#     png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+#     print(plt)
+#     dev.off()
+#     filename <- sprintf("pdf/Correlations_%02d_SI.pdf",TestIndex)
+#     ggsave(file=filename,plot=plt,device=pdf,width=6.5, height=3.25,units="in")    
+#   }
+# }
 
-#############################################################################################
-# Correlation plot Main text (Test = 9)
-TestIndex <- 9
-REP <- ReadData(TestIndex)
-# Surface <- data.frame(REP$Param1,REP$Param2,REP$Param1.1,REP$Param2.1,REP$AvgLoss)
-# colnames(Surface)<-c("kr","r0","ktheta","theta0","AvgLoss")
-plt <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
-#if (fig.format=="PNG") {
-  filename <- sprintf("png/Correlations_%02d_Main.png",TestIndex)
-  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-  print(plt)
-  dev.off()
-#} else  {
-  filename <- sprintf("ps/Correlations_%02d_Main.ps",TestIndex)
-  cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
-  print(plt)
-  dev.off()
+# Correlation lines
+# PlotCorrelationLines(fits,fits.free)
+
+
+# #############################################################################################
+# # Correlation plot Main text. Only for Test = 9
+# TestIndex <- 9
+# REP <- ReadData(TestIndex)
+# plots <- PlotCorrelations(REP,TestIndex,fitting=TRUE)
+# plt <- plots$Corr
+# filename <- sprintf("png/Correlations_%02d_Main.png",TestIndex)
+# png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+# print(plt)
+# dev.off()
+# filename <- sprintf("pdf/Correlations_%02d_Main.pdf",TestIndex)
+# ggsave(file=filename,plot=plt,device=pdf,width=7.5, height=6.5,units="in")
+# plt <- plots$CorrAbline
+# filename <- sprintf("pdf/Correlations_%02d_MainLine.pdf",TestIndex)
+# ggsave(file=filename,plot=plt,device=pdf,width=7.5, height=6.5,units="in")
+# plt <- plots$CorrPoints
+# filename <- sprintf("pdf/Correlations_%02d_MainPoints.pdf",TestIndex)
+# ggsave(file=filename,plot=plt,device=pdf,width=7.5, height=6.5,units="in")
+
+
+# # Check ergodicity of MCMC
+# TestIndex <- 14
+# REP <- ReadData(TestIndex)
+# lambda<-0.001
+# beta<-1/lambda
+# rate<-beta
+# AvgLoss.h <- hist(REP$AvgLoss,25)
+# AvgLoss.fit.gamma <- fitdistr(REP$AvgLoss,"gamma")
+# shape <- AvgLoss.fit.gamma$estimate[1]
+# rate <- AvgLoss.fit.gamma$estimate[2]
+# dfloss <- data.frame(x.simP=AvgLoss.h$mids, y.simP=AvgLoss.h$density, y.theoP=dgamma(AvgLoss.h$mids,shape=shape,rate=rate))
+# plt <- ggplot(dfloss) + geom_point(aes(x=x.simP,y=y.simP),size=3) + 
+#   geom_line(aes(x=x.simP,y=y.theoP),size=2,col="red") + 
+#   xlab("Loss") + ylab("P(Loss)")  + thm2
+# #if (fig.format=="PNG") {
+#   filename <- sprintf("png/ErgodicityTest_%02d.png",TestIndex)
+#   png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
+#   print(plt)
+#   dev.off()
+# #} else {
+#   filename <- sprintf("pdf/ErgodicityTest_%02d.ps",TestIndex)
+#   cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
+#   print(plt)
+#   dev.off()
 #}
-
-# Check ergodicity of MCMC
-TestIndex <- 03
-REP <- ReadData(TestIndex)
-lambda<-0.001
-beta<-1/lambda
-rate<-beta
-AvgLoss.h <- hist(REP$AvgLoss,25)
-AvgLoss.fit.gamma <- fitdistr(REP$AvgLoss,"gamma")
-shape <- AvgLoss.fit.gamma$estimate[1]
-rate <- AvgLoss.fit.gamma$estimate[2]
-dfloss <- data.frame(x.simP=AvgLoss.h$mids, y.simP=AvgLoss.h$density, y.theoP=dgamma(AvgLoss.h$mids,shape=shape,rate=rate))
-plt <- ggplot(dfloss) + geom_point(aes(x=x.simP,y=y.simP),size=3) + 
-  geom_line(aes(x=x.simP,y=y.theoP),size=2,col="red") + 
-  xlab("Loss") + ylab("P(Loss)")  + thm2
-#if (fig.format=="PNG") {
-  filename <- sprintf("png/ErgodicityTest_%02d.png",TestIndex)
-  png(file = filename, width = 6.5, height=3.25, units = 'in', type = "cairo", res = 600)
-  print(plt)
-  dev.off()
-#} else {
-  filename <- sprintf("ps/ErgodicityTest_%02d.ps",TestIndex)
-  cairo_ps(file = filename, width = 6.5, height=3.25, pointsize = 12)
-  print(plt)
-  dev.off()
-#}
-
-
-############################################################################################
-# Distribution plot Main text (Test = 13)
-# Load distributions from a sample of N runs from Test = 13
-# Set reload TRUE if you want to sample another sample,
-# however, it you need to have the raw simulations data in ../test13/ 
 # 
-reload <- FALSE
-TestIndex <- 13
-REP <- ReadData(TestIndex)
-if (reload) {
-  ridx <- sample(max(REP$Run),100)-1 # 0 to N included 
-   GlobalIdx <- 0
-   for (idx in ridx) {
-     tmp <- LoadDist(idx,TestIndex)
-     tmp$run <- rep(idx,nrow(tmp)) # Add run information
-     tmp$AvgLoss <- rep(REP[REP$Run==idx,]$AvgLoss,nrow(tmp)) # Add average loss
-     if (GlobalIdx == 0) {    
-       df <- tmp
-     } else {
-       df <- rbind(df,tmp)
-     }
-     GlobalIdx <- GlobalIdx + 1
-   }
-   colnames(df) <- c("x","y","id","run","AvgLoss")
+# 
+############################################################################################
+
+
+TestIndexList <- list(16,22,23,25,26,30,31)
+TestIndexList <- list(16)
+
+for (TestIndex in TestIndexList) { 
+
+  # Read Data
+  # If test 16 (MC) I should read test 17,18,19,20 (MCSAs)
+  # to check which is the one with smaller loss and use only 
+  # That for the distributions.
+  REPs<-list()
+  MCSAlist <- c(17,18,19,20)
+  if (TestIndex == 16) {
+    REPs <- lappend(REPs,ReadData(16))
+    REPs <- lappend(REPs,ReadData(17))
+    min.17 <- min(REPs[[2]]$AvgLoss)
+    REPs <- lappend(REPs,ReadData(18))
+    min.18 <- min(REPs[[3]]$AvgLoss)
+    REPs <- lappend(REPs,ReadData(19))
+    min.19 <- min(REPs[[4]]$AvgLoss)
+    REPs <- lappend(REPs,ReadData(20))
+    min.20 <- min(REPs[[5]]$AvgLoss)
+    min.loss <- which.min(c(min.17,min.18,min.19,min.20)) + 1
+  } else {
+    REPs[[1]] <- ReadData(TestIndex)  
+    min.loss <- 1
+  }
   
-  # Best Iteration distributions
-  bestr <- REP[which.min(REP$AvgLoss),]$Run
-  df.best <- LoadDist(bestr,TestIndex)
+  # Load Dists
+  # Set reload true if you want to read from raw data
+  # otherwise it will use data frame already stored in ana/df.XXX
+  # For tests 2 to 14 raw data is only present on t800 so reload, 
+  # if you are not on t800, set it to false.
+  reload=TRUE
+  if (TestIndex<14) {
+    reload=FALSE
+  }
+  if (TestIndex==16) {
+    Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)
+    df.16 <- Dists[[1]]
+    Dists <- LoadDists.wrap(REPs[[min.loss]],MCSAlist[min.loss-1],reload=TRUE)
+    df.min.loss <- Dists[[1]]
+    df.min.loss$run <- df.min.loss$run + max(df.16$run) 
+    df <- rbind(df.16,df.min.loss)    
+  } else {
+    Dists <- LoadDists.wrap(REPs[[1]],TestIndex,reload=reload)  
+    df <- Dists[[1]]
+  }
+  df.best <- Dists[[2]]
+  df.ref <- Dists[[3]]
+  df.Giu <- Dists[[4]]
   
   
-  # Ref distributions for 310
-  df.ref <- LoadRefDist()  
+#   # Plot distributios
+#   if (TestIndex %in% attributes[attributes$r13==TRUE,1]) {
+#     PlotDists(df,df.best,df.ref,df.Giu,"r13",TestIndex)
+#   } 
+#   if (TestIndex %in% attributes[attributes$r14==TRUE,1]) {
+#     PlotDists(df,df.best,df.ref,df.Giu,"r14",TestIndex)
+#   }
+#   if (TestIndex %in% attributes[attributes$theta==TRUE,1]) {
+#     PlotDists(df,df.best,df.ref,df.Giu,"theta",TestIndex)
+#   }
+#   if (TestIndex %in% attributes[attributes$phi==TRUE,1]) {
+#     PlotDists(df,df.best,df.ref,df.Giu,"phi",TestIndex)
+#   }
+#   
+#   # These are only for IBI 
+#   # Plot PMFs
+#   if (TestIndex %in% attributes[attributes$SIM=="IBI",1]) {
+#     
+#     # Load PMFs
+#     PMFs <- LoadPMF.wrap(REPs[[1]],TestIndex,reload=TRUE)
+#     df.fitted <- PMFs[[1]]
+#     df.tobefitted <- PMFs[[2]]
+#     
+#     if (TestIndex %in% attributes[attributes$r13==TRUE,1]) {
+#       PlotPMFs(df.fitted,df.tobefitted,"r13",TestIndex)  
+#     }
+#     if (TestIndex %in% attributes[attributes$r14==TRUE,1]) {
+#       PlotPMFs(df.fitted,df.tobefitted,"r14",TestIndex)  
+#     }
+#     if (TestIndex %in% attributes[attributes$theta==TRUE,1]) {
+#       PlotPMFs(df.fitted,df.tobefitted,"theta",TestIndex)  
+#     }
+#     if (TestIndex %in% attributes[attributes$phi==TRUE,1]) {
+#       PlotPMFs(df.fitted,df.tobefitted,"phi",TestIndex)  
+#     }
+#   }
   
-  # Distributions for 310 Giulia
-  df.Giu <- LoadDistGiulia()  
+  # Plot Loss
+  PlotLoss(REPs,TestIndex)
+
+  # Best Parameters (only for relevant tests)
+  BestParameters(REPs,TestIndex)
   
-  # Store dfs  
-  save(file="dfTest13.Rdata",df)
-  save(file="df.ref.Rdata",df.ref)
-  save(file="df.Giu.Rdata",df.Giu)
-  save(file="dfTest13.best.Rdata",df.best)
-  
-} else {
-  
-  # Load df
-  load(file="dfTest13.Rdata")  
-  load(file="df.ref.Rdata")
-  load(file="df.Giu.Rdata")
-  load(file="dfTest13.best.Rdata")
-}
-
-
-
-# Plot distributions
-p13 <- PlotDists(df,df.best,df.ref,df.Giu,"r13")
-p14 <- PlotDists(df,df.best,df.ref,df.Giu,"r14")
-p15 <- PlotDists(df,df.best,df.ref,df.Giu,"r15")
-ptheta <- PlotDists(df,df.best,df.ref,df.Giu,"theta")
-pphi <- PlotDists(df,df.best,df.ref,df.Giu,"phi")
-
-
-
-
-
-
-
-
-
+} # End loop over TestIndexList
 
