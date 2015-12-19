@@ -945,7 +945,7 @@ PlotLoss <- function(REPs,TestIndex) {
 
 
 BestParameters.tofile <- function(REP.best,TestIndex) {
-  Table <- matrix(0,10,1)
+  Table <- matrix(0,12,1)
   Table[1,1] <- REP.best$Param1
   Table[2,1] <- REP.best$Param2
   Table[3,1] <- REP.best$Param3
@@ -956,11 +956,14 @@ BestParameters.tofile <- function(REP.best,TestIndex) {
   Table[8,1] <- REP.best$Param2.2*180/pi
   Table[9,1] <- REP.best$Param1.3
   Table[10,1] <- REP.best$Param2.3*180/pi + 180.0
+  Table[11,1] <- "AvgLoss"
+  Table[12,1] <- REP.best$AvgLoss
   filename <- sprintf("BestParameters_Test%02d.dat",TestIndex)
   write.table(Table,file=filename,row.names=FALSE,col.names=FALSE)    
 }
 
 BestParameters <- function(REPs,TestIndex) {
+  TestList<-c(31,33,34,35,36)
   if (TestIndex == 16) {    
     TestList <- c(16,17,18,19,20)
     for (i in c(1:5)) {
@@ -968,14 +971,14 @@ BestParameters <- function(REPs,TestIndex) {
       best <- which.min(REP$AvgLoss)
       REP.best <- REP[best,]  
       BestParameters.tofile(REP.best,TestList[i])
-    }    
-  } else if (TestIndex == 31) {        
+    }        
+  } else if (TestIndex %in% TestList) {
     REP <- REPs[[1]]
     best <- which.min(REP$AvgLoss)
     REP.best <- REP[best,]  
-    BestParameters.tofile(REP.best,TestIndex)    
+    BestParameters.tofile(REP.best,TestIndex)        
   } else {
-    cat("Optimal parameters are extracted only for TestIndex 16 and 31\n")
+    cat("Optimal parameters are extracted only for TestIndex 16, 31, 33, 34, 35, 36\n")
   }
 }
 
@@ -1056,7 +1059,7 @@ BestParameters <- function(REPs,TestIndex) {
 
 
 TestIndexList <- list(16,22,23,25,26,30,31)
-TestIndexList <- list(16)
+TestIndexList <- list(33,34,35,36)
 
 for (TestIndex in TestIndexList) { 
 
@@ -1145,7 +1148,7 @@ for (TestIndex in TestIndexList) {
 #   }
   
   # Plot Loss
-  PlotLoss(REPs,TestIndex)
+  #PlotLoss(REPs,TestIndex)
 
   # Best Parameters (only for relevant tests)
   BestParameters(REPs,TestIndex)
