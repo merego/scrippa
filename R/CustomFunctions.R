@@ -109,8 +109,7 @@ localMaxima <- function(x) {
 }
 
 
-# append to list
 lappend <- function (lst, ...){
-  lst <- c(lst, list(...))
+lst <- c(lst, list(...))
   return(lst)
 }
